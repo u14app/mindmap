@@ -1,0 +1,425 @@
+.mindmap-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.mindmap-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.mindmap-svg:focus {
+  outline: none;
+}
+
+.mindmap-svg.dragging-canvas {
+  cursor: grabbing;
+}
+
+.mindmap-svg.dragging-node {
+  cursor: grabbing;
+}
+
+/* Node animation for smooth transitions */
+.mindmap-node-animated {
+  transition: transform 0.3s ease-out;
+}
+
+.mindmap-edge-animated {
+  transition: d 0.3s ease-out;
+}
+
+/* New node appear animation (streaming) */
+@keyframes mindmap-node-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mindmap-node-new {
+  animation: mindmap-node-appear 0.3s ease-out;
+}
+
+/* Edit input */
+.mindmap-edit-input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  text-align: center;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+.mindmap-edit-root {
+  color: #fff;
+  background: transparent;
+}
+
+.mindmap-edit-child {
+  color: inherit;
+  background: transparent;
+  border-radius: 4px;
+}
+
+/* Zoom controls - bottom left */
+.mindmap-zoom-controls {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Direction controls - bottom right */
+.mindmap-direction-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Control buttons */
+.mindmap-ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: inherit;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.mindmap-ctrl-btn:hover {
+  background: rgba(128, 128, 128, 0.2);
+}
+
+.mindmap-ctrl-btn.active {
+  background: rgba(128, 128, 128, 0.3);
+}
+
+.mindmap-ctrl-pct {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: system-ui, sans-serif;
+  transition: background 0.15s;
+}
+
+.mindmap-ctrl-pct:hover {
+  background: rgba(128, 128, 128, 0.2);
+}
+
+/* Add child button */
+.mindmap-add-btn {
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.mindmap-node-g:hover .mindmap-add-btn {
+  opacity: 1;
+}
+
+/* Context menu */
+.mindmap-context-menu {
+  position: absolute;
+  backdrop-filter: blur(12px);
+  border-radius: 8px;
+  padding: 4px 0;
+  min-width: 150px;
+  z-index: 1000;
+  border: 1px solid;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.mindmap-ctx-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  white-space: nowrap;
+}
+
+.mindmap-ctx-item:hover {
+  filter: brightness(0.92);
+  background: rgba(128, 128, 128, 0.1);
+}
+
+.mindmap-ctx-arrow {
+  font-size: 8px;
+  margin-left: 12px;
+  opacity: 0.5;
+}
+
+.mindmap-ctx-divider {
+  height: 0;
+  border-top: 1px solid;
+  margin: 4px 8px;
+  opacity: 0.3;
+}
+
+.mindmap-ctx-submenu {
+  position: absolute;
+  left: 100%;
+  top: -4px;
+  backdrop-filter: blur(12px);
+  border-radius: 8px;
+  padding: 4px 0;
+  min-width: 140px;
+  border: 1px solid;
+}
+
+.mindmap-ctx-has-sub {
+  position: relative;
+}
+
+/* Dialog backdrop (shared by import & help) */
+.mindmap-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  font-family: system-ui, -apple-system, sans-serif;
+  animation: mindmap-fade-in 0.15s ease-out;
+}
+
+@keyframes mindmap-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.mindmap-dialog-modal {
+  border-radius: 12px;
+  padding: 24px;
+  width: calc(100% - 32px);
+  max-width: 480px;
+  max-height: 80%;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid;
+  animation: mindmap-dialog-enter 0.2s ease-out;
+  position: relative;
+}
+
+@keyframes mindmap-dialog-enter {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.mindmap-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.mindmap-dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.mindmap-dialog-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: inherit;
+  opacity: 0.5;
+  transition: opacity 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+
+.mindmap-dialog-close:hover {
+  opacity: 1;
+  background: rgba(128, 128, 128, 0.2);
+}
+
+/* Import dialog */
+.mindmap-import-textarea {
+  width: 100%;
+  min-height: 200px;
+  border-radius: 8px;
+  border: 2px solid;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  font-size: 14px;
+  resize: vertical;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.mindmap-import-textarea.error {
+  border-color: #e74c3c !important;
+  animation: mindmap-shake 0.4s ease;
+}
+
+@keyframes mindmap-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.mindmap-import-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.mindmap-import-btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: system-ui, -apple-system, sans-serif;
+  transition: opacity 0.15s;
+}
+
+.mindmap-import-btn:hover {
+  opacity: 0.85;
+}
+
+/* Help button - top right */
+.mindmap-help-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background 0.15s;
+  z-index: 100;
+}
+
+.mindmap-help-btn:hover {
+  background: rgba(128, 128, 128, 0.3) !important;
+}
+
+/* Shortcuts button - left of help button */
+.mindmap-shortcuts-btn {
+  position: absolute;
+  top: 16px;
+  right: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background 0.15s;
+  z-index: 100;
+}
+
+.mindmap-shortcuts-btn:hover {
+  background: rgba(128, 128, 128, 0.3) !important;
+}
+
+/* Help dialog table */
+.mindmap-help-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+
+.mindmap-help-table th,
+.mindmap-help-table td {
+  padding: 6px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  font-size: 14px;
+}
+
+.mindmap-help-table th {
+  font-weight: 600;
+}
+
+.mindmap-help-table td:first-child {
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+@media (max-width: 500px) {
+  .mindmap-dialog-modal {
+    padding: 16px;
+    max-height: 90%;
+  }
+
+  .mindmap-help-table th,
+  .mindmap-help-table td {
+    padding: 5px 8px;
+    font-size: 13px;
+  }
+
+  .mindmap-help-table td:first-child {
+    font-size: 12px;
+  }
+}
