@@ -89,20 +89,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Direction controls - bottom right */
-.mindmap-direction-controls {
-  position: absolute;
-  bottom: 16px;
-  right: 16px;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  backdrop-filter: blur(8px);
-  border-radius: 8px;
-  padding: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
 /* Control buttons */
 .mindmap-ctrl-btn {
   display: flex;
@@ -124,10 +110,6 @@
   background: rgba(128, 128, 128, 0.2);
 }
 
-.mindmap-ctrl-btn.active {
-  background: rgba(128, 128, 128, 0.3);
-}
-
 .mindmap-ctrl-pct {
   display: flex;
   align-items: center;
@@ -147,6 +129,38 @@
 
 .mindmap-ctrl-pct:hover {
   background: rgba(128, 128, 128, 0.2);
+}
+
+/* Extra controls - bottom right (mode & fullscreen) */
+.mindmap-extra-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  backdrop-filter: blur(8px);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+}
+
+/* Text editor for text mode */
+.mindmap-text-editor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 24px;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  font-size: 15px;
+  line-height: 1.7;
+  box-sizing: border-box;
+  z-index: 10;
 }
 
 /* Add child button */
@@ -287,94 +301,10 @@
   background: rgba(128, 128, 128, 0.2);
 }
 
-/* Import dialog */
-.mindmap-import-textarea {
-  width: 100%;
-  min-height: 200px;
-  border-radius: 8px;
-  border: 2px solid;
-  padding: 12px;
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
-  font-size: 14px;
-  resize: vertical;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
-  outline: none;
-}
-
-.mindmap-import-textarea.error {
-  border-color: #e74c3c !important;
-  animation: mindmap-shake 0.4s ease;
-}
-
-@keyframes mindmap-shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-6px); }
-  40% { transform: translateX(6px); }
-  60% { transform: translateX(-4px); }
-  80% { transform: translateX(4px); }
-}
-
-.mindmap-import-buttons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.mindmap-import-btn {
-  padding: 8px 20px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  font-family: system-ui, -apple-system, sans-serif;
-  transition: opacity 0.15s;
-}
-
-.mindmap-import-btn:hover {
-  opacity: 0.85;
-}
-
-/* Help dialog table */
-.mindmap-help-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 8px;
-}
-
-.mindmap-help-table th,
-.mindmap-help-table td {
-  padding: 6px 12px;
-  text-align: left;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
-  font-size: 14px;
-}
-
-.mindmap-help-table th {
-  font-weight: 600;
-}
-
-.mindmap-help-table td:first-child {
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
 @media (max-width: 500px) {
   .mindmap-dialog-modal {
     padding: 16px;
     max-height: 90%;
-  }
-
-  .mindmap-help-table th,
-  .mindmap-help-table td {
-    padding: 5px 8px;
-    font-size: 13px;
-  }
-
-  .mindmap-help-table td:first-child {
-    font-size: 12px;
   }
 }
 
@@ -396,7 +326,7 @@
   }
 
   .mindmap-zoom-controls,
-  .mindmap-direction-controls {
+  .mindmap-extra-controls {
     bottom: 12px;
     padding: 3px;
     gap: 1px;
@@ -406,7 +336,7 @@
     left: 12px;
   }
 
-  .mindmap-direction-controls {
+  .mindmap-extra-controls {
     right: 12px;
   }
 }

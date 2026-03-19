@@ -10,7 +10,6 @@ export interface MindMapContextMenuProps {
   direction: LayoutDirection
   readonly?: boolean
   onNewRootNode: () => void
-  onImport: () => void
   onExportSVG: () => void
   onExportPNG: () => void
   onExportMarkdown: () => void
@@ -24,7 +23,6 @@ export function MindMapContextMenu({
   messages,
   readonly: readonlyProp,
   onNewRootNode,
-  onImport,
   onExportSVG,
   onExportPNG,
   onExportMarkdown,
@@ -62,60 +60,6 @@ export function MindMapContextMenu({
           />
         </>
       )}
-      {!readonlyProp && (
-        <div
-          className="mindmap-ctx-item"
-          onClick={onImport}
-          style={{ color: theme.contextMenu.textColor }}
-        >
-          {messages.import}
-        </div>
-      )}
-      <div
-        className="mindmap-ctx-item mindmap-ctx-has-sub"
-        onMouseEnter={() => setExportSubmenuOpen(true)}
-        onMouseLeave={() => setExportSubmenuOpen(false)}
-        style={{ color: theme.contextMenu.textColor }}
-      >
-        {messages.export}
-        <span className="mindmap-ctx-arrow">&#9654;</span>
-        {exportSubmenuOpen && (
-          <div
-            className="mindmap-ctx-submenu"
-            style={{
-              background: theme.contextMenu.bgColor,
-              boxShadow: `0 4px 16px ${theme.contextMenu.shadowColor}`,
-              borderColor: theme.contextMenu.borderColor,
-            }}
-          >
-            <div
-              className="mindmap-ctx-item"
-              onClick={onExportSVG}
-              style={{ color: theme.contextMenu.textColor }}
-            >
-              {messages.exportSVG}
-            </div>
-            <div
-              className="mindmap-ctx-item"
-              onClick={onExportPNG}
-              style={{ color: theme.contextMenu.textColor }}
-            >
-              {messages.exportPNG}
-            </div>
-            <div
-              className="mindmap-ctx-item"
-              onClick={onExportMarkdown}
-              style={{ color: theme.contextMenu.textColor }}
-            >
-              {messages.exportMarkdown}
-            </div>
-          </div>
-        )}
-      </div>
-      <div
-        className="mindmap-ctx-divider"
-        style={{ borderColor: theme.contextMenu.borderColor }}
-      />
       <div
         className="mindmap-ctx-item mindmap-ctx-has-sub"
         onMouseEnter={() => setLayoutSubmenuOpen(true)}
@@ -153,6 +97,51 @@ export function MindMapContextMenu({
               style={{ color: theme.contextMenu.textColor }}
             >
               {messages.layoutRight}
+            </div>
+          </div>
+        )}
+      </div>
+      <div
+        className="mindmap-ctx-divider"
+        style={{ borderColor: theme.contextMenu.borderColor }}
+      />
+      <div
+        className="mindmap-ctx-item mindmap-ctx-has-sub"
+        onMouseEnter={() => setExportSubmenuOpen(true)}
+        onMouseLeave={() => setExportSubmenuOpen(false)}
+        style={{ color: theme.contextMenu.textColor }}
+      >
+        {messages.export}
+        <span className="mindmap-ctx-arrow">&#9654;</span>
+        {exportSubmenuOpen && (
+          <div
+            className="mindmap-ctx-submenu"
+            style={{
+              background: theme.contextMenu.bgColor,
+              boxShadow: `0 4px 16px ${theme.contextMenu.shadowColor}`,
+              borderColor: theme.contextMenu.borderColor,
+            }}
+          >
+            <div
+              className="mindmap-ctx-item"
+              onClick={onExportSVG}
+              style={{ color: theme.contextMenu.textColor }}
+            >
+              {messages.exportSVG}
+            </div>
+            <div
+              className="mindmap-ctx-item"
+              onClick={onExportPNG}
+              style={{ color: theme.contextMenu.textColor }}
+            >
+              {messages.exportPNG}
+            </div>
+            <div
+              className="mindmap-ctx-item"
+              onClick={onExportMarkdown}
+              style={{ color: theme.contextMenu.textColor }}
+            >
+              {messages.exportMarkdown}
             </div>
           </div>
         )}

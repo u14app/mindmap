@@ -34,7 +34,6 @@ import { useNewNodeAnimation } from "./hooks/useNewNodeAnimation";
 import { MindMapNode } from "./components/MindMapNode";
 import { MindMapControls } from "./components/MindMapControls";
 import { MindMapContextMenu } from "./components/MindMapContextMenu";
-import { MindMapImportDialog } from "./components/MindMapImportDialog";
 import "./MindMap.css";
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -78,7 +77,9 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   } | null>(null);
   const [colorMap, setColorMap] = useState<Record<string, string>>({});
   const clipboardRef = useRef<MindMapData | null>(null);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [mode, setMode] = useState<'view' | 'text'>('view');
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [textContent, setTextContent] = useState('');
 
   // Sync external data / markdown
   useEffect(() => {
@@ -110,11 +111,10 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
   // --- Toolbar visibility ---
   const toolbarConfig = useMemo(() => {
-    if (toolbar === false) return { zoom: false, direction: false };
-    if (toolbar === true || toolbar === undefined) return { zoom: true, direction: true };
+    if (toolbar === false) return { zoom: false };
+    if (toolbar === true || toolbar === undefined) return { zoom: true };
     return {
       zoom: toolbar.zoom ?? true,
-      direction: toolbar.direction ?? true,
     };
   }, [toolbar]);
 
@@ -331,13 +331,42 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     setSplitIndices({});
   }, []);
 
-  // Import data
-  const handleImport = useCallback((data: MindMapData[]) => {
-    if (readonlyProp) return;
-    updateData(() => data);
-    setSplitIndices({});
-    setImportDialogOpen(false);
-  }, [updateData, readonlyProp]);
+  // Mode toggle
+  const handleModeToggle = useCallback(() => {
+    setMode((prev) => {
+      if (prev === 'view') {
+        // Entering text mode: serialize current data
+        setTextContent(toMarkdownMultiRoot(mapData));
+        return 'text';
+      } else {
+        // Exiting text mode: parse text back to data
+        const parsed = parseMarkdownMultiRoot(textContent);
+        updateData(() => parsed);
+        setSplitIndices({});
+        return 'view';
+      }
+    });
+  }, [mapData, textContent, updateData]);
+
+  // Fullscreen toggle
+  const handleFullscreenToggle = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      el.requestFullscreen();
+    }
+  }, []);
+
+  // Sync fullscreen state
+  useEffect(() => {
+    const handler = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
 
   // Keyboard handler
   const handleKeyDown = useCallback(
@@ -514,10 +543,21 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   // --- Render ---
   return (
     <div ref={containerRef} className="mindmap-container">
+      {mode === 'text' && (
+        <textarea
+          className="mindmap-text-editor"
+          value={textContent}
+          onChange={(e) => setTextContent(e.target.value)}
+          style={{
+            background: activeTheme.canvas.bgColor,
+            color: activeTheme.node.textColor,
+          }}
+        />
+      )}
       <svg
         ref={svgRef}
         className={`mindmap-svg ${draggingCanvas ? "dragging-canvas" : ""} ${floatingNodeId ? "dragging-node" : ""}`}
-        style={{ background: activeTheme.canvas.bgColor }}
+        style={{ background: activeTheme.canvas.bgColor, display: mode === 'text' ? 'none' : 'block' }}
         tabIndex={0}
         onWheel={handleWheel}
         onMouseDown={handleCanvasMouseDown}
@@ -658,15 +698,16 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
       <MindMapControls
         zoom={zoom}
-        direction={direction}
         theme={activeTheme}
         messages={t}
         showZoom={toolbarConfig.zoom}
-        showDirection={toolbarConfig.direction}
+        mode={mode}
+        isFullscreen={isFullscreen}
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
         onAutoFit={handleAutoFit}
-        onDirectionChange={handleDirectionChange}
+        onModeToggle={handleModeToggle}
+        onFullscreenToggle={handleFullscreenToggle}
       />
 
       {contextMenu && (
@@ -677,7 +718,6 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
           direction={direction}
           readonly={readonlyProp}
           onNewRootNode={handleNewRootNode}
-          onImport={() => { setImportDialogOpen(true); closeContextMenu(); }}
           onExportSVG={handleExportSVG}
           onExportPNG={handleExportPNG}
           onExportMarkdown={handleExportMarkdown}
@@ -686,14 +726,6 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         />
       )}
 
-      {importDialogOpen && (
-        <MindMapImportDialog
-          theme={activeTheme}
-          messages={t}
-          onImport={handleImport}
-          onClose={() => setImportDialogOpen(false)}
-        />
-      )}
     </div>
   );
 });

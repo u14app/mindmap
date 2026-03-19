@@ -1,15 +1,15 @@
 {
-  "name": "open-mindmap",
+  "name": "mindmap",
   "private": false,
   "version": "0.1.0",
   "type": "module",
-  "main": "dist/open-mindmap.umd.cjs",
-  "module": "dist/open-mindmap.js",
+  "main": "dist/mindmap.umd.cjs",
+  "module": "dist/mindmap.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/open-mindmap.js",
-      "require": "./dist/open-mindmap.umd.cjs",
+      "import": "./dist/mindmap.js",
+      "require": "./dist/mindmap.umd.cjs",
       "types": "./dist/index.d.ts"
     },
     "./style.css": "./dist/style.css"

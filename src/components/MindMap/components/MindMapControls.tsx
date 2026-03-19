@@ -1,38 +1,36 @@
-import type { LayoutDirection } from '../types'
 import type { ThemeColors } from '../utils/theme'
 import type { MindMapMessages } from '../utils/i18n'
 import {
   IconPlus,
   IconMinus,
-  IconLayoutLeft,
-  IconLayoutRight,
-  IconLayoutBoth,
 } from './icons'
 
 export interface MindMapControlsProps {
   zoom: number
-  direction: LayoutDirection
   theme: ThemeColors
   messages: MindMapMessages
   showZoom?: boolean
-  showDirection?: boolean
+  mode: 'view' | 'text'
+  isFullscreen: boolean
   onZoomIn: () => void
   onZoomOut: () => void
   onAutoFit: () => void
-  onDirectionChange: (dir: LayoutDirection) => void
+  onModeToggle: () => void
+  onFullscreenToggle: () => void
 }
 
 export function MindMapControls({
   zoom,
-  direction,
   theme,
   messages,
   showZoom = true,
-  showDirection = true,
+  mode,
+  isFullscreen,
   onZoomIn,
   onZoomOut,
   onAutoFit,
-  onDirectionChange,
+  onModeToggle,
+  onFullscreenToggle,
 }: MindMapControlsProps) {
   return (
     <>
@@ -72,41 +70,56 @@ export function MindMapControls({
         </div>
       )}
 
-      {/* Direction controls - bottom right */}
-      {showDirection && (
-        <div
-          className="mindmap-direction-controls"
-          style={{
-            background: theme.controls.bgColor,
-            color: theme.controls.textColor,
-          }}
+      {/* Extra controls - bottom right (mode & fullscreen) */}
+      <div
+        className="mindmap-extra-controls"
+        style={{
+          background: theme.controls.bgColor,
+          color: theme.controls.textColor,
+        }}
+      >
+        <button
+          className="mindmap-ctrl-btn"
+          onClick={onModeToggle}
+          title={mode === 'view' ? messages.textMode : messages.viewMode}
+          style={{ color: theme.controls.textColor }}
         >
-          <button
-            className={`mindmap-ctrl-btn ${direction === 'left' ? 'active' : ''}`}
-            onClick={() => onDirectionChange('left')}
-            title={messages.layoutLeft}
-            style={{ color: theme.controls.textColor }}
-          >
-            <IconLayoutLeft size={16} />
-          </button>
-          <button
-            className={`mindmap-ctrl-btn ${direction === 'both' ? 'active' : ''}`}
-            onClick={() => onDirectionChange('both')}
-            title={messages.layoutBoth}
-            style={{ color: theme.controls.textColor }}
-          >
-            <IconLayoutBoth size={16} />
-          </button>
-          <button
-            className={`mindmap-ctrl-btn ${direction === 'right' ? 'active' : ''}`}
-            onClick={() => onDirectionChange('right')}
-            title={messages.layoutRight}
-            style={{ color: theme.controls.textColor }}
-          >
-            <IconLayoutRight size={16} />
-          </button>
-        </div>
-      )}
+          {mode === 'view' ? (
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 5h12" />
+              <path d="M4 12h10" />
+              <path d="M12 19h8" />
+            </svg>
+          ) : (
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          )}
+        </button>
+        <button
+          className="mindmap-ctrl-btn"
+          onClick={onFullscreenToggle}
+          title={isFullscreen ? messages.exitFullscreen : messages.fullscreen}
+          style={{ color: theme.controls.textColor }}
+        >
+          {isFullscreen ? (
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3" />
+              <path d="M21 8h-3a2 2 0 0 1-2-2V3" />
+              <path d="M3 16h3a2 2 0 0 1 2 2v3" />
+              <path d="M16 21v-3a2 2 0 0 1 2-2h3" />
+            </svg>
+          ) : (
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+              <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+              <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+              <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
+            </svg>
+          )}
+        </button>
+      </div>
     </>
   )
 }

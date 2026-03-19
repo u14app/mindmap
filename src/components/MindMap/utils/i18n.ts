@@ -9,6 +9,10 @@ export interface MindMapMessages {
   layoutLeft: string
   layoutBoth: string
   layoutRight: string
+  textMode: string
+  viewMode: string
+  fullscreen: string
+  exitFullscreen: string
 
   // Context menu
   newRootNode: string
@@ -16,14 +20,7 @@ export interface MindMapMessages {
   exportSVG: string
   exportPNG: string
   exportMarkdown: string
-  import: string
   layout: string
-
-  // Import dialog
-  importTitle: string
-  importPlaceholder: string
-  importConfirm: string
-  importCancel: string
 
   // Shared
   close: string
@@ -38,19 +35,17 @@ const zhCN: MindMapMessages = {
   layoutLeft: '向左排版',
   layoutBoth: '左右排版',
   layoutRight: '向右排版',
+  textMode: '文本模式',
+  viewMode: '视图模式',
+  fullscreen: '全屏',
+  exitFullscreen: '退出全屏',
 
   newRootNode: '新建主节点',
   export: '导出',
   exportSVG: '导出为 SVG',
   exportPNG: '导出为 PNG',
   exportMarkdown: '导出为 Markdown',
-  import: '导入',
   layout: '布局',
-
-  importTitle: '导入数据',
-  importPlaceholder: '粘贴 JSON 数据或 Markdown 列表...',
-  importConfirm: '确认',
-  importCancel: '取消',
 
   close: '关闭',
 }
@@ -64,19 +59,17 @@ const enUS: MindMapMessages = {
   layoutLeft: 'Left Layout',
   layoutBoth: 'Both Layout',
   layoutRight: 'Right Layout',
+  textMode: 'Text Mode',
+  viewMode: 'View Mode',
+  fullscreen: 'Fullscreen',
+  exitFullscreen: 'Exit Fullscreen',
 
   newRootNode: 'New Root Node',
   export: 'Export',
   exportSVG: 'Export as SVG',
   exportPNG: 'Export as PNG',
   exportMarkdown: 'Export as Markdown',
-  import: 'Import',
   layout: 'Layout',
-
-  importTitle: 'Import Data',
-  importPlaceholder: 'Paste JSON data or Markdown list...',
-  importConfirm: 'Confirm',
-  importCancel: 'Cancel',
 
   close: 'Close',
 }

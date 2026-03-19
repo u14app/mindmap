@@ -10,7 +10,6 @@ export type ThemeMode = 'light' | 'dark' | 'auto'
 
 export interface ToolbarConfig {
   zoom?: boolean
-  direction?: boolean
 }
 
 export interface LayoutNode {
