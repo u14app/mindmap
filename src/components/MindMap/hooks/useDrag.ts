@@ -249,6 +249,7 @@ export function useDrag({
   useEffect(() => {
     const svg = svgRef.current
     if (!svg) return
+    const svgEl = svg as SVGSVGElement // non-null from guard above
 
     function getTouchDistance(t0: Touch, t1: Touch): number {
       return Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY)
@@ -287,13 +288,19 @@ export function useDrag({
         // Check if touch started on a node
         const nodeId = findNodeIdFromTarget(e.target)
         if (nodeId) {
+          // Skip drag if touch started on an add button
+          let el = e.target as Element | null
+          while (el && el !== svgEl) {
+            if (el.classList?.contains('mindmap-add-btn')) return
+            el = el.parentElement
+          }
           // Start node drag
           didDragRef.current = false
           const node = nodeMapRef.current[nodeId]
           if (node) {
             setFloatingNodeId(nodeId)
             setFloatingPos({ x: node.x, y: node.y })
-            const svgRect = svg.getBoundingClientRect()
+            const svgRect = svgEl.getBoundingClientRect()
             const svgX = (touch.clientX - svgRect.left - panRef.current.x) / zoomRef.current
             const svgY = (touch.clientY - svgRect.top - panRef.current.y) / zoomRef.current
             grabOffsetRef.current = {
@@ -344,7 +351,6 @@ export function useDrag({
         const newZoom = Math.min(Math.max(state.startZoom * ratio, 0.1), 5)
 
         // Keep content centered
-        const svgEl = svg
         const cx = svgEl.clientWidth / 2
         const cy = svgEl.clientHeight / 2
         const cc = state.contentCenter
@@ -370,7 +376,7 @@ export function useDrag({
       if (state.type === 'node-drag' && touches.length === 1 && state.touchNodeId) {
         didDragRef.current = true
         const touch = touches[0]
-        const svgRect = svg.getBoundingClientRect()
+        const svgRect = svgEl.getBoundingClientRect()
         const svgX = (touch.clientX - svgRect.left - panRef.current.x) / zoomRef.current
         const svgY = (touch.clientY - svgRect.top - panRef.current.y) / zoomRef.current
         const newPos = {
@@ -468,16 +474,16 @@ export function useDrag({
       }
     }
 
-    svg.addEventListener('touchstart', handleTouchStart, { passive: false })
-    svg.addEventListener('touchmove', handleTouchMove, { passive: false })
-    svg.addEventListener('touchend', handleTouchEnd, { passive: false })
-    svg.addEventListener('touchcancel', handleTouchEnd, { passive: false })
+    svgEl.addEventListener('touchstart', handleTouchStart, { passive: false })
+    svgEl.addEventListener('touchmove', handleTouchMove, { passive: false })
+    svgEl.addEventListener('touchend', handleTouchEnd, { passive: false })
+    svgEl.addEventListener('touchcancel', handleTouchEnd, { passive: false })
 
     return () => {
-      svg.removeEventListener('touchstart', handleTouchStart)
-      svg.removeEventListener('touchmove', handleTouchMove)
-      svg.removeEventListener('touchend', handleTouchEnd)
-      svg.removeEventListener('touchcancel', handleTouchEnd)
+      svgEl.removeEventListener('touchstart', handleTouchStart)
+      svgEl.removeEventListener('touchmove', handleTouchMove)
+      svgEl.removeEventListener('touchend', handleTouchEnd)
+      svgEl.removeEventListener('touchcancel', handleTouchEnd)
     }
   }, [svgRef, setPan, setZoom, findNodeIdFromTarget, direction, mapData, splitIndices, setSplitIndices, updateData, nodes])
 

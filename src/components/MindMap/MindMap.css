@@ -336,52 +336,6 @@
   opacity: 0.85;
 }
 
-/* Help button - top right */
-.mindmap-help-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: background 0.15s;
-  z-index: 100;
-}
-
-.mindmap-help-btn:hover {
-  background: rgba(128, 128, 128, 0.3) !important;
-}
-
-/* Shortcuts button - left of help button */
-.mindmap-shortcuts-btn {
-  position: absolute;
-  top: 16px;
-  right: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: background 0.15s;
-  z-index: 100;
-}
-
-.mindmap-shortcuts-btn:hover {
-  background: rgba(128, 128, 128, 0.3) !important;
-}
-
 /* Help dialog table */
 .mindmap-help-table {
   width: 100%;
@@ -421,5 +375,38 @@
 
   .mindmap-help-table td:first-child {
     font-size: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mindmap-ctrl-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .mindmap-ctrl-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .mindmap-ctrl-pct {
+    min-width: 40px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .mindmap-zoom-controls,
+  .mindmap-direction-controls {
+    bottom: 12px;
+    padding: 3px;
+    gap: 1px;
+  }
+
+  .mindmap-zoom-controls {
+    left: 12px;
+  }
+
+  .mindmap-direction-controls {
+    right: 12px;
   }
 }

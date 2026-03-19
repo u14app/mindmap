@@ -1,17 +1,14 @@
 import { useCallback } from 'react'
 import type { ThemeColors } from '../utils/theme'
-import type { MindMapMessages } from '../utils/i18n'
 import { IconClose } from './icons'
 
 export interface MindMapShortcutsDialogProps {
   theme: ThemeColors
-  messages: MindMapMessages
   onClose: () => void
 }
 
 export function MindMapShortcutsDialog({
   theme,
-  messages,
   onClose,
 }: MindMapShortcutsDialogProps) {
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -23,23 +20,23 @@ export function MindMapShortcutsDialog({
   }, [onClose])
 
   const shortcuts = [
-    ['Enter', messages.helpCreateChild],
-    ['Delete / Backspace', messages.helpDeleteNode],
-    ['Double-click', messages.helpEditNode],
-    ['Cmd/Ctrl + C', messages.helpCopySubtree],
-    ['Cmd/Ctrl + X', messages.helpCutSubtree],
-    ['Cmd/Ctrl + V', messages.helpPasteSubtree],
-    ['Escape', messages.helpCloseMenu],
-    ['Scroll wheel', messages.helpZoomInOut],
-    ['Click + drag canvas', messages.helpPan],
-    ['Click + drag node', messages.helpReorderSiblings],
-    ['Right-click', messages.helpContextMenu],
-    ['Shift + +', messages.helpShortcutZoomIn],
-    ['Shift + -', messages.helpShortcutZoomOut],
-    ['Shift + 0', messages.helpShortcutResetView],
-    ['Shift + L', messages.helpShortcutLayoutLeft],
-    ['Shift + R', messages.helpShortcutLayoutRight],
-    ['Shift + M', messages.helpShortcutLayoutBoth],
+    ['Enter', 'Create child node'],
+    ['Delete / Backspace', 'Delete selected node'],
+    ['Double-click', 'Edit node text'],
+    ['Cmd/Ctrl + C', 'Copy subtree'],
+    ['Cmd/Ctrl + X', 'Cut subtree'],
+    ['Cmd/Ctrl + V', 'Paste subtree'],
+    ['Escape', 'Close menu'],
+    ['Scroll wheel', 'Zoom in / out'],
+    ['Click + drag canvas', 'Pan canvas'],
+    ['Click + drag node', 'Reorder siblings'],
+    ['Right-click', 'Context menu'],
+    ['Shift + +', 'Zoom in'],
+    ['Shift + -', 'Zoom out'],
+    ['Shift + 0', 'Reset view'],
+    ['Shift + L', 'Left layout'],
+    ['Shift + R', 'Right layout'],
+    ['Shift + M', 'Both layout'],
   ]
 
   return (
@@ -59,12 +56,12 @@ export function MindMapShortcutsDialog({
       >
         <div className="mindmap-dialog-header">
           <div className="mindmap-dialog-title" style={{ fontSize: 18, fontWeight: 700 }}>
-            {messages.shortcutsTitle}
+            Keyboard Shortcuts
           </div>
           <button
             className="mindmap-dialog-close"
             onClick={onClose}
-            title={messages.close}
+            title="Close"
           >
             <IconClose size={16} />
           </button>
@@ -72,8 +69,8 @@ export function MindMapShortcutsDialog({
         <table className="mindmap-help-table">
           <thead>
             <tr>
-              <th style={{ color: theme.contextMenu.textColor }}>{messages.helpShortcut}</th>
-              <th style={{ color: theme.contextMenu.textColor }}>{messages.helpAction}</th>
+              <th style={{ color: theme.contextMenu.textColor }}>Shortcut</th>
+              <th style={{ color: theme.contextMenu.textColor }}>Action</th>
             </tr>
           </thead>
           <tbody>

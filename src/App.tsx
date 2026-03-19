@@ -1,5 +1,7 @@
 import { MindMap } from "./components/MindMap";
 import type { MindMapData } from "./components/MindMap";
+import { DemoHelpButton } from "./DemoHelpButton";
+import { DemoShortcutsButton } from "./DemoShortcutsButton";
 
 const demoData: MindMapData = {
   id: "root",
@@ -56,6 +58,8 @@ function App() {
   return (
     <div style={{ width: "100vw", height: "100vh", position: "relative" }}>
       <MindMap data={demoData} />
+      <DemoShortcutsButton />
+      <DemoHelpButton />
     </div>
   );
 }

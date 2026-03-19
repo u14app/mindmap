@@ -3,20 +3,76 @@ import type { MindMapData } from '../types'
 export function parseMarkdownList(md: string): MindMapData {
   const lines = md.split('\n')
   const items: { indent: number; text: string }[] = []
+  let bareRootText: string | null = null
 
   for (const line of lines) {
     // Match lines starting with optional whitespace then - or * followed by space
     const match = line.match(/^(\s*)[*-]\s+(.+)/)
-    if (!match) continue
-    const indent = match[1].replace(/\t/g, '  ').length
-    const text = match[2].trim()
-    if (text) items.push({ indent, text })
+    if (match) {
+      const indent = match[1].replace(/\t/g, '  ').length
+      const text = match[2].trim()
+      if (text) items.push({ indent, text })
+      continue
+    }
+    // Detect bare root: first non-empty line without a list marker, before any list items
+    if (bareRootText === null && items.length === 0) {
+      const trimmed = line.trim()
+      if (trimmed) {
+        bareRootText = trimmed
+      }
+    }
   }
 
-  if (items.length === 0) {
+  if (items.length === 0 && bareRootText === null) {
     return { id: 'md-0', text: 'Root' }
   }
 
+  // Bare root text: use it as root, all list items become children
+  if (bareRootText !== null) {
+    const root: MindMapData = { id: 'md-0', text: bareRootText, children: [] }
+
+    if (items.length === 0) {
+      delete root.children
+      return root
+    }
+
+    // Detect indent unit (smallest non-zero indent)
+    let indentUnit = 2
+    for (const item of items) {
+      if (item.indent > 0) {
+        indentUnit = item.indent
+        break
+      }
+    }
+
+    const normalized = items.map((item) => ({
+      level: item.indent > 0 ? Math.round(item.indent / indentUnit) : 0,
+      text: item.text,
+    }))
+
+    // All level-0 items are direct children of the bare root
+    const stack: [MindMapData, number][] = [[root, -1]]
+
+    for (let i = 0; i < normalized.length; i++) {
+      const { level, text } = normalized[i]
+      const node: MindMapData = { id: 'md-tmp', text }
+
+      while (stack.length > 1 && stack[stack.length - 1][1] >= level) {
+        stack.pop()
+      }
+
+      const parent = stack[stack.length - 1][0]
+      if (!parent.children) parent.children = []
+      node.id = `${parent.id}-${parent.children.length}`
+      parent.children.push(node)
+      stack.push([node, level])
+    }
+
+    cleanChildren(root)
+    return root
+  }
+
+  // Original logic: first list item is root
   // Detect indent unit (smallest non-zero indent)
   let indentUnit = 2
   for (const item of items) {
@@ -82,8 +138,13 @@ function cleanChildren(node: MindMapData): void {
 }
 
 export function toMarkdownList(data: MindMapData, indent = 0): string {
-  const prefix = '  '.repeat(indent) + '- '
-  let result = prefix + data.text + '\n'
+  let result: string
+  if (indent === 0) {
+    // Root node: no list prefix
+    result = data.text + '\n'
+  } else {
+    result = '  '.repeat(indent - 1) + '- ' + data.text + '\n'
+  }
   if (data.children) {
     for (const child of data.children) {
       result += toMarkdownList(child, indent + 1)

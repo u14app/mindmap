@@ -1,11 +1,9 @@
 import { useCallback } from 'react'
 import type { ThemeColors } from '../utils/theme'
-import type { MindMapMessages } from '../utils/i18n'
 import { IconClose } from './icons'
 
 export interface MindMapHelpDialogProps {
   theme: ThemeColors
-  messages: MindMapMessages
   onClose: () => void
 }
 
@@ -13,7 +11,6 @@ const REPO_URL = 'https://github.com/u14app/mindmap'
 
 export function MindMapHelpDialog({
   theme,
-  messages,
   onClose,
 }: MindMapHelpDialogProps) {
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -41,21 +38,21 @@ export function MindMapHelpDialog({
       >
         <div className="mindmap-dialog-header">
           <div className="mindmap-dialog-title" style={{ fontSize: 20, fontWeight: 700 }}>
-            {messages.helpTitle}
+            Open MindMap
           </div>
           <button
             className="mindmap-dialog-close"
             onClick={onClose}
-            title={messages.close}
+            title="Close"
           >
             <IconClose size={16} />
           </button>
         </div>
         <div style={{ fontSize: 14, lineHeight: 1.6, opacity: 0.85, marginBottom: 16 }}>
-          {messages.helpDescription}
+          A beautiful, interactive mind map component for React. Natively supports AI stream output with Markdown list syntax and iOS-style UI. Zero dependencies, pure SVG rendering, dark mode ready.
         </div>
         <div>
-          <span style={{ fontWeight: 600, fontSize: 14 }}>{messages.helpOpenSource}: </span>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>Open Source: </span>
           <a
             href={REPO_URL}
             target="_blank"

@@ -13,7 +13,7 @@ import type {
   MindMapRef,
   LayoutDirection,
 } from "./types";
-import { layoutMultiRoot } from "./utils/layout";
+import { layoutMultiRoot, computeEdgePath } from "./utils/layout";
 import { buildExportSVG, exportToPNG } from "./utils/export";
 import { parseMarkdownMultiRoot, toMarkdownMultiRoot } from "./utils/markdown";
 import { resolveMessages, detectLocale } from "./utils/i18n";
@@ -35,9 +35,6 @@ import { MindMapNode } from "./components/MindMapNode";
 import { MindMapControls } from "./components/MindMapControls";
 import { MindMapContextMenu } from "./components/MindMapContextMenu";
 import { MindMapImportDialog } from "./components/MindMapImportDialog";
-import { MindMapHelpDialog } from "./components/MindMapHelpDialog";
-import { MindMapShortcutsDialog } from "./components/MindMapShortcutsDialog";
-import { IconHelp, IconKeyboard } from "./components/icons";
 import "./MindMap.css";
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -82,8 +79,6 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   const [colorMap, setColorMap] = useState<Record<string, string>>({});
   const clipboardRef = useRef<MindMapData | null>(null);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
-  const [shortcutsDialogOpen, setShortcutsDialogOpen] = useState(false);
 
   // Sync external data / markdown
   useEffect(() => {
@@ -115,13 +110,11 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
   // --- Toolbar visibility ---
   const toolbarConfig = useMemo(() => {
-    if (toolbar === false) return { zoom: false, direction: false, help: false, shortcuts: false };
-    if (toolbar === true || toolbar === undefined) return { zoom: true, direction: true, help: true, shortcuts: true };
+    if (toolbar === false) return { zoom: false, direction: false };
+    if (toolbar === true || toolbar === undefined) return { zoom: true, direction: true };
     return {
       zoom: toolbar.zoom ?? true,
       direction: toolbar.direction ?? true,
-      help: toolbar.help ?? true,
-      shortcuts: toolbar.shortcuts ?? true,
     };
   }, [toolbar]);
 
@@ -598,8 +591,26 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
             if (!rootNode) return null;
             const dx = floatingPos.x - rootNode.x;
             const dy = floatingPos.y - rootNode.y;
+            // Compute edge from parent to floating root (rendered outside translated group)
+            const parentNode = rootNode.parentId ? nodeMap[rootNode.parentId] : null;
             return (
-              <g transform={`translate(${dx}, ${dy})`} style={{ pointerEvents: 'none' }}>
+              <>
+                {/* Edge from parent to floating dragged node */}
+                {parentNode && (
+                  <path
+                    d={computeEdgePath(
+                      parentNode.x, parentNode.y, parentNode.width,
+                      floatingPos.x, floatingPos.y, rootNode.width,
+                      rootNode.side,
+                    )}
+                    stroke={rootNode.color}
+                    strokeWidth={activeTheme.connection.strokeWidth}
+                    strokeLinecap="round"
+                    fill="none"
+                    style={{ pointerEvents: 'none' }}
+                  />
+                )}
+                <g transform={`translate(${dx}, ${dy})`} style={{ pointerEvents: 'none' }}>
                 {/* Floating edges within subtree */}
                 {edges
                   .filter((e) => floatingSubtreeIds.has(e.fromId) && floatingSubtreeIds.has(e.toId))
@@ -639,6 +650,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                     />
                   ))}
               </g>
+              </>
             );
           })()}
         </g>
@@ -680,50 +692,6 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
           messages={t}
           onImport={handleImport}
           onClose={() => setImportDialogOpen(false)}
-        />
-      )}
-
-      {toolbarConfig.shortcuts && (
-        <button
-          className="mindmap-shortcuts-btn"
-          style={{
-            background: activeTheme.controls.bgColor,
-            color: activeTheme.controls.textColor,
-          }}
-          onClick={() => setShortcutsDialogOpen(true)}
-          title={t.shortcuts}
-        >
-          <IconKeyboard size={16} />
-        </button>
-      )}
-
-      {toolbarConfig.help && (
-        <button
-          className="mindmap-help-btn"
-          style={{
-            background: activeTheme.controls.bgColor,
-            color: activeTheme.controls.textColor,
-          }}
-          onClick={() => setHelpDialogOpen(true)}
-          title={t.help}
-        >
-          <IconHelp size={16} />
-        </button>
-      )}
-
-      {shortcutsDialogOpen && (
-        <MindMapShortcutsDialog
-          theme={activeTheme}
-          messages={t}
-          onClose={() => setShortcutsDialogOpen(false)}
-        />
-      )}
-
-      {helpDialogOpen && (
-        <MindMapHelpDialog
-          theme={activeTheme}
-          messages={t}
-          onClose={() => setHelpDialogOpen(false)}
         />
       )}
     </div>

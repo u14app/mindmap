@@ -111,6 +111,7 @@ export function MindMapNode({
         {!readonlyProp && !isGhost && (direction === 'right' || direction === 'both') && (
           <g
             className="mindmap-add-btn"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => onAddChild(e, node.id, 'right')}
           >
             <circle
@@ -142,6 +143,7 @@ export function MindMapNode({
         {!readonlyProp && !isGhost && (direction === 'left' || direction === 'both') && (
           <g
             className="mindmap-add-btn"
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => onAddChild(e, node.id, 'left')}
           >
             <circle
@@ -260,6 +262,7 @@ export function MindMapNode({
       {!readonlyProp && !isGhost && (
         <g
           className="mindmap-add-btn"
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => onAddChild(e, node.id)}
         >
           <circle
