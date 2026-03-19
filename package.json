@@ -1,16 +1,25 @@
 {
   "name": "mindmap",
   "private": false,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "main": "dist/mindmap.umd.cjs",
-  "module": "dist/mindmap.js",
+  "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
+  "sideEffects": [
+    "*.css",
+    "./dist/esm/plugins/latex.js"
+  ],
   "exports": {
     ".": {
-      "import": "./dist/mindmap.js",
-      "require": "./dist/mindmap.umd.cjs",
-      "types": "./dist/index.d.ts"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/mindmap.umd.cjs"
+      }
     },
     "./style.css": "./dist/style.css"
   },
@@ -20,13 +29,19 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "build:lib": "tsc -p tsconfig.lib.json && vite build --mode lib",
+    "build:lib": "rm -rf dist && vite build --mode lib && tsc -p tsconfig.lib.json",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "peerDependencies": {
     "react": ">=18",
-    "react-dom": ">=18"
+    "react-dom": ">=18",
+    "katex": ">=0.16"
+  },
+  "peerDependenciesMeta": {
+    "katex": {
+      "optional": true
+    }
   },
   "dependencies": {
     "react": "^19.2.4",

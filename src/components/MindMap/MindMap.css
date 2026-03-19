@@ -51,6 +51,37 @@
   animation: mindmap-node-appear 0.3s ease-out;
 }
 
+/* Fold expand animation for nodes */
+@keyframes mindmap-expand-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mindmap-node-expanding {
+  animation: mindmap-expand-appear 0.3s ease-out both;
+}
+
+/* Fold expand animation for edges (line drawing effect) */
+@keyframes mindmap-edge-draw {
+  from {
+    stroke-dashoffset: 300;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.mindmap-edge-expanding {
+  stroke-dasharray: 300;
+  animation: mindmap-edge-draw 0.3s ease-out both;
+}
+
 /* Edit input */
 .mindmap-edit-input {
   width: 100%;

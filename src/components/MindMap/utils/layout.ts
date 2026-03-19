@@ -1,6 +1,15 @@
 import type { MindMapData, LayoutNode, Edge, LayoutDirection, TaskStatus } from '../types'
+import type { MindMapPlugin } from '../plugins/types'
+import type { LayoutContext } from '../plugins/types'
 import { BRANCH_COLORS, THEME } from './theme'
 import { stripInlineMarkdown } from './inline-markdown'
+import {
+  runAdjustNodeSize,
+  runFilterChildren,
+  runTransformEdge,
+  runGenerateExtraEdges,
+  runTransformNodeColor,
+} from '../plugins/runner'
 
 interface InternalNode {
   id: string
@@ -17,6 +26,13 @@ interface InternalNode {
   parentId?: string
   remark?: string
   taskStatus?: TaskStatus
+  // Plugin extension fields (carried from MindMapData)
+  dottedLine?: boolean
+  multiLineContent?: string[]
+  tags?: string[]
+  anchorId?: string
+  crossLinks?: MindMapData['crossLinks']
+  collapsed?: boolean
 }
 
 let _ctx: CanvasRenderingContext2D | null = null
@@ -70,6 +86,8 @@ function buildInternal(
   side: 'left' | 'right' | 'root',
   color: string,
   parentId?: string,
+  plugins?: MindMapPlugin[],
+  layoutCtx?: LayoutContext,
 ): InternalNode {
   const isRoot = depth === 0
   const isLevel1 = depth === 1
@@ -79,14 +97,40 @@ function buildInternal(
   const paddingV = isRoot ? THEME.root.paddingV : THEME.node.paddingV
 
   const textWidth = measureFormattedText(data.text, fontSize, fontWeight, data.taskStatus, !!data.remark)
-  const width = textWidth + paddingH * 2
-  const height = fontSize + paddingV * 2
+  let width = textWidth + paddingH * 2
+  let height = fontSize + paddingV * 2
 
-  const children = (data.children || []).map((child, i) => {
+  // Plugin: adjust node size (multi-line, tags, etc.)
+  if (plugins && plugins.length > 0) {
+    const adjusted = runAdjustNodeSize(plugins, data, width, height, fontSize)
+    width = adjusted.width
+    height = adjusted.height
+  }
+
+  // Plugin: filter children (folding)
+  let childrenData = data.children || []
+  if (plugins && plugins.length > 0 && layoutCtx) {
+    childrenData = runFilterChildren(plugins, data, childrenData, layoutCtx)
+  }
+
+  // Plugin: transform node color (decorator)
+  let nodeColor = color
+  if (plugins && plugins.length > 0) {
+    const colorResult = runTransformNodeColor(
+      plugins,
+      { id: data.id, text: data.text, x: 0, y: 0, width, height, color, depth, side, parentId } as LayoutNode,
+      data,
+      color,
+    )
+    if (colorResult.color) nodeColor = colorResult.color
+  }
+
+  const children = childrenData.map((child, i) => {
+    // Child color: use decorator's color for inheritance, or default branch color
     const childColor = isRoot
       ? BRANCH_COLORS[i % BRANCH_COLORS.length]
-      : color
-    return buildInternal(child, depth + 1, depth === 0 ? side : side, childColor, data.id)
+      : nodeColor
+    return buildInternal(child, depth + 1, depth === 0 ? side : side, childColor, data.id, plugins, layoutCtx)
   })
 
   return {
@@ -97,13 +141,20 @@ function buildInternal(
     height,
     depth,
     side,
-    color,
+    color: nodeColor,
     x: 0,
     y: 0,
     subtreeHeight: 0,
     parentId,
     remark: data.remark,
     taskStatus: data.taskStatus,
+    // Plugin extension fields
+    dottedLine: data.dottedLine,
+    multiLineContent: data.multiLineContent,
+    tags: data.tags,
+    anchorId: data.anchorId,
+    crossLinks: data.crossLinks,
+    collapsed: data.collapsed,
   }
 }
 
@@ -152,6 +203,13 @@ function collectNodes(node: InternalNode, result: LayoutNode[]): void {
     parentId: node.parentId,
     remark: node.remark,
     taskStatus: node.taskStatus,
+    // Plugin extension fields
+    dottedLine: node.dottedLine,
+    multiLineContent: node.multiLineContent,
+    tags: node.tags,
+    anchorId: node.anchorId,
+    crossLinks: node.crossLinks,
+    collapsed: node.collapsed,
   })
   for (const child of node.children) {
     collectNodes(child, result)
@@ -172,16 +230,27 @@ export function computeEdgePath(
   return `M ${x1},${y1} C ${cx},${y1} ${cx},${y2} ${x2},${y2}`
 }
 
-function collectEdges(node: InternalNode, result: Edge[]): void {
+function collectEdges(node: InternalNode, result: Edge[], allNodes: LayoutNode[], plugins?: MindMapPlugin[]): void {
   for (const child of node.children) {
-    result.push({
+    let edge: Edge = {
       key: `${node.id}-${child.id}`,
       path: computeEdgePath(node.x, node.y, node.width, child.x, child.y, child.width, child.side),
       color: child.color,
       fromId: node.id,
       toId: child.id,
-    })
-    collectEdges(child, result)
+    }
+
+    // Plugin: transform edge (e.g. dotted-line sets strokeDasharray)
+    if (plugins && plugins.length > 0) {
+      const fromLayoutNode = allNodes.find(n => n.id === node.id)
+      const toLayoutNode = allNodes.find(n => n.id === child.id)
+      if (fromLayoutNode && toLayoutNode) {
+        edge = runTransformEdge(plugins, edge, fromLayoutNode, toLayoutNode)
+      }
+    }
+
+    result.push(edge)
+    collectEdges(child, result, allNodes, plugins)
   }
 }
 
@@ -190,7 +259,14 @@ export function layoutMindMap(
   direction: LayoutDirection = 'both',
   colorMap?: Record<string, string>,
   splitIndex?: number,
+  plugins?: MindMapPlugin[],
+  readonly?: boolean,
+  foldOverrides?: Record<string, boolean>,
 ): { nodes: LayoutNode[]; edges: Edge[] } {
+  const layoutCtx: LayoutContext | undefined = plugins && plugins.length > 0
+    ? { direction, theme: THEME, readonly: !!readonly, foldOverrides: foldOverrides || {} }
+    : undefined
+
   const rootChildren = data.children || []
 
   let rightChildren: MindMapData[]
@@ -217,15 +293,18 @@ export function layoutMindMap(
     0,
     'root',
     THEME.root.bgColor,
+    undefined,
+    plugins,
+    layoutCtx,
   )
 
   const rightNodes = rightChildren.map((child, i) => {
     const color = colorMap?.[child.id] ?? BRANCH_COLORS[i % BRANCH_COLORS.length]
-    return buildInternal(child, 1, 'right', color, data.id)
+    return buildInternal(child, 1, 'right', color, data.id, plugins, layoutCtx)
   })
   const leftNodes = leftChildren.map((child, i) => {
     const color = colorMap?.[child.id] ?? BRANCH_COLORS[((direction === 'left' ? 0 : midpoint) + i) % BRANCH_COLORS.length]
-    return buildInternal(child, 1, 'left', color, data.id)
+    return buildInternal(child, 1, 'left', color, data.id, plugins, layoutCtx)
   })
 
   rootNode.children = [...rightNodes, ...leftNodes]
@@ -259,7 +338,13 @@ export function layoutMindMap(
   const edges: Edge[] = []
 
   collectNodes(rootNode, nodes)
-  collectEdges(rootNode, edges)
+  collectEdges(rootNode, edges, nodes, plugins)
+
+  // Plugin: generate extra edges (cross-links)
+  if (plugins && plugins.length > 0 && layoutCtx) {
+    const extraEdges = runGenerateExtraEdges(plugins, nodes, [data], layoutCtx)
+    edges.push(...extraEdges)
+  }
 
   return { nodes, edges }
 }
@@ -272,15 +357,18 @@ export function layoutMultiRoot(
   direction: LayoutDirection = 'both',
   colorMap?: Record<string, string>,
   splitIndices?: Record<string, number>,
+  plugins?: MindMapPlugin[],
+  readonly?: boolean,
+  foldOverrides?: Record<string, boolean>,
 ): { nodes: LayoutNode[]; edges: Edge[] } {
   if (roots.length === 0) return { nodes: [], edges: [] }
   if (roots.length === 1) {
-    return layoutMindMap(roots[0], direction, colorMap, splitIndices?.[roots[0].id])
+    return layoutMindMap(roots[0], direction, colorMap, splitIndices?.[roots[0].id], plugins, readonly, foldOverrides)
   }
 
   // Layout each tree independently
   const treeLayouts = roots.map((root) =>
-    layoutMindMap(root, direction, colorMap, splitIndices?.[root.id])
+    layoutMindMap(root, direction, colorMap, splitIndices?.[root.id], plugins, readonly, foldOverrides)
   )
 
   // Compute bounding box of each tree
@@ -349,6 +437,7 @@ export function layoutMultiRoot(
     // Recompute all edges after centering
     for (let i = 0; i < combinedEdges.length; i++) {
       const edge = combinedEdges[i]
+      if (edge.isCrossLink) continue // cross-link edges are handled by plugins
       const fromNode = combinedNodes.find(n => n.id === edge.fromId)
       const toNode = combinedNodes.find(n => n.id === edge.toId)
       if (fromNode && toNode) {

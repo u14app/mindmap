@@ -12,10 +12,11 @@ import type {
   MindMapProps,
   MindMapRef,
   LayoutDirection,
+  ThemeMode,
 } from "./types";
 import { layoutMultiRoot, computeEdgePath } from "./utils/layout";
 import { buildExportSVG, buildExportSVGForPNG, exportToPNG } from "./utils/export";
-import { parseMarkdownMultiRoot, toMarkdownMultiRoot } from "./utils/markdown";
+import { parseMarkdownMultiRoot, parseMarkdownWithFrontMatter, toMarkdownMultiRoot } from "./utils/markdown";
 import { resolveMessages, detectLocale } from "./utils/i18n";
 import {
   generateId,
@@ -34,6 +35,7 @@ import { useNewNodeAnimation } from "./hooks/useNewNodeAnimation";
 import { MindMapNode } from "./components/MindMapNode";
 import { MindMapControls } from "./components/MindMapControls";
 import { MindMapContextMenu } from "./components/MindMapContextMenu";
+import { runRenderOverlay } from "./plugins/runner";
 import "./MindMap.css";
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -58,17 +60,39 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     readonly: readonlyProp = false,
     toolbar = true,
     onDataChange,
+    plugins: pluginsProp,
   },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const plugins = pluginsProp && pluginsProp.length > 0 ? pluginsProp : undefined;
+
+  // --- Eagerly parse markdown on init to avoid first-frame flash ---
+  const initParsed = useMemo(() => {
+    if (data) return null; // data prop takes priority
+    if (markdown === undefined) return null;
+    if (plugins) {
+      const result = parseMarkdownWithFrontMatter(markdown, plugins);
+      const dir = result.frontMatter.direction as LayoutDirection | undefined;
+      const thm = result.frontMatter.theme as ThemeMode | undefined;
+      return {
+        roots: result.roots,
+        direction: (dir === 'left' || dir === 'right' || dir === 'both') ? dir : undefined,
+        theme: (thm === 'light' || thm === 'dark' || thm === 'auto') ? thm : undefined,
+      };
+    }
+    return { roots: parseMarkdownMultiRoot(markdown), direction: undefined, theme: undefined };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount
 
   // --- Data state ---
-  const [mapData, setMapData] = useState<MindMapData[]>(() =>
-    normalizeData(data),
-  );
-  const [direction, setDirection] = useState<LayoutDirection>(defaultDirection);
+  const [mapData, setMapData] = useState<MindMapData[]>(() => {
+    if (data) return normalizeData(data);
+    if (initParsed) return initParsed.roots;
+    return [{ id: 'md-0', text: 'Root' }];
+  });
+  const [direction, setDirection] = useState<LayoutDirection>(() => initParsed?.direction ?? defaultDirection);
   const [splitIndices, setSplitIndices] = useState<Record<string, number>>({});
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
@@ -81,17 +105,38 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [textContent, setTextContent] = useState('');
   const [remarkTooltip, setRemarkTooltip] = useState<{ nodeId: string; text: string; x: number; y: number } | null>(null);
+  const [foldOverrides, setFoldOverrides] = useState<Record<string, boolean>>({});
+  const [expandingFromId, setExpandingFromId] = useState<string | null>(null);
+  const [fmTheme, setFmTheme] = useState<ThemeMode | undefined>(() => initParsed?.theme);
 
   // Sync external data / markdown
   useEffect(() => {
-    setMapData(normalizeData(data));
+    if (data) setMapData(normalizeData(data));
   }, [data]);
 
   useEffect(() => {
     if (markdown !== undefined) {
-      setMapData(parseMarkdownMultiRoot(markdown));
+      if (plugins) {
+        const { roots, frontMatter } = parseMarkdownWithFrontMatter(markdown, plugins);
+        setMapData(roots);
+        // Apply frontmatter direction/theme if not explicitly set via props
+        if (frontMatter.direction) {
+          const dir = frontMatter.direction as LayoutDirection;
+          if (dir === 'left' || dir === 'right' || dir === 'both') {
+            setDirection(dir);
+          }
+        }
+        if (frontMatter.theme) {
+          const t = frontMatter.theme as ThemeMode;
+          if (t === 'light' || t === 'dark' || t === 'auto') {
+            setFmTheme(t);
+          }
+        }
+      } else {
+        setMapData(parseMarkdownMultiRoot(markdown));
+      }
     }
-  }, [markdown]);
+  }, [markdown, plugins]);
 
   const updateData = useCallback(
     (updater: (prev: MindMapData[]) => MindMapData[]) => {
@@ -105,7 +150,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   );
 
   // --- Theme ---
-  const activeTheme = useTheme(themeProp);
+  const activeTheme = useTheme(fmTheme ?? themeProp);
 
   // --- i18n ---
   const t = useMemo(() => resolveMessages(locale ?? detectLocale(), messageOverrides), [locale, messageOverrides]);
@@ -121,8 +166,8 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
   // --- Layout ---
   const { nodes, edges } = useMemo(
-    () => layoutMultiRoot(mapData, direction, colorMap, splitIndices),
-    [mapData, direction, colorMap, splitIndices],
+    () => layoutMultiRoot(mapData, direction, colorMap, splitIndices, plugins, readonlyProp, foldOverrides),
+    [mapData, direction, colorMap, splitIndices, plugins, readonlyProp, foldOverrides],
   );
 
   // Persist colors for level-1 nodes (so they survive swaps)
@@ -145,6 +190,29 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     for (const n of nodes) map[n.id] = n;
     return map;
   }, [nodes]);
+
+  // --- Expand animation delays (BFS from expanded node) ---
+  const expandDelays = useMemo(() => {
+    if (!expandingFromId) return {};
+    const delays: Record<string, number> = {};
+    const queue: { id: string; depth: number }[] = [];
+    // Find direct children of the expanding node
+    for (const n of nodes) {
+      if (n.parentId === expandingFromId) {
+        queue.push({ id: n.id, depth: 1 });
+      }
+    }
+    while (queue.length > 0) {
+      const { id, depth } = queue.shift()!;
+      delays[id] = depth * 100; // 100ms stagger per depth level
+      for (const n of nodes) {
+        if (n.parentId === id) {
+          queue.push({ id: n.id, depth: depth + 1 });
+        }
+      }
+    }
+    return delays;
+  }, [expandingFromId, nodes]);
 
   // --- Pan / Zoom ---
   const {
@@ -179,16 +247,32 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   // --- New Node Animation ---
   const newNodeIds = useNewNodeAnimation(nodes);
 
+  // --- Initial entrance state ---
+  const [initialReady, setInitialReady] = useState(false);
+
   // --- Auto-fit on data change (suppressed during drag and node creation) ---
   useEffect(() => {
     if (floatingNodeId) return;
     if (pendingEditId) return;
     const fit = autoFit();
     if (fit) {
-      setZoom(fit.zoom);
-      setPan({ x: fit.panX, y: fit.panY });
+      if (!initialReady) {
+        // First fit: start slightly zoomed out, then animate in
+        const entranceZoom = fit.zoom * 0.92;
+        setZoom(entranceZoom);
+        setPan({ x: fit.panX, y: fit.panY });
+        requestAnimationFrame(() => {
+          setInitialReady(true);
+          animateTo(fit.zoom, fit.panX, fit.panY);
+        });
+      } else {
+        setZoom(fit.zoom);
+        setPan({ x: fit.panX, y: fit.panY });
+      }
+    } else if (!initialReady) {
+      requestAnimationFrame(() => setInitialReady(true));
     }
-  }, [nodes, autoFit, floatingNodeId, pendingEditId, setZoom, setPan]);
+  }, [nodes, autoFit, floatingNodeId, pendingEditId, setZoom, setPan, initialReady, animateTo]);
 
   // Pan to newly created node (keep zoom, only pan)
   useEffect(() => {
@@ -320,28 +404,28 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
   const handleExportSVG = useCallback(() => {
     const svg = buildExportSVG(
-      nodes, edges, {}, activeTheme,
+      nodes, edges, {}, activeTheme, plugins,
     );
     const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
     downloadBlob(blob, "mindmap.svg");
     closeContextMenu();
-  }, [nodes, edges, activeTheme, closeContextMenu]);
+  }, [nodes, edges, activeTheme, closeContextMenu, plugins]);
 
   const handleExportPNG = useCallback(async () => {
     const svg = buildExportSVGForPNG(
-      nodes, edges, {}, activeTheme,
+      nodes, edges, { pngSafe: true }, activeTheme, plugins,
     );
     const blob = await exportToPNG(svg);
     downloadBlob(blob, "mindmap.png");
     closeContextMenu();
-  }, [nodes, edges, activeTheme, closeContextMenu]);
+  }, [nodes, edges, activeTheme, closeContextMenu, plugins]);
 
   const handleExportMarkdown = useCallback(() => {
-    const md = toMarkdownMultiRoot(mapData);
+    const md = toMarkdownMultiRoot(mapData, plugins);
     const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
     downloadBlob(blob, "mindmap.md");
     closeContextMenu();
-  }, [mapData, closeContextMenu]);
+  }, [mapData, closeContextMenu, plugins]);
 
   // Reset view
   const handleAutoFit = useCallback(() => {
@@ -362,17 +446,19 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     setMode((prev) => {
       if (prev === 'view') {
         // Entering text mode: serialize current data
-        setTextContent(toMarkdownMultiRoot(mapData));
+        setTextContent(toMarkdownMultiRoot(mapData, plugins));
         return 'text';
       } else {
         // Exiting text mode: parse text back to data
-        const parsed = parseMarkdownMultiRoot(textContent);
+        const parsed = plugins
+          ? parseMarkdownWithFrontMatter(textContent, plugins).roots
+          : parseMarkdownMultiRoot(textContent);
         updateData(() => parsed);
         setSplitIndices({});
         return 'view';
       }
     });
-  }, [mapData, textContent, updateData]);
+  }, [mapData, textContent, updateData, plugins]);
 
   // Fullscreen toggle
   const handleFullscreenToggle = useCallback(() => {
@@ -522,17 +608,17 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     () => ({
       exportToSVG() {
         return buildExportSVG(
-          nodes, edges, {}, activeTheme,
+          nodes, edges, {}, activeTheme, plugins,
         );
       },
       async exportToPNG() {
         const svg = buildExportSVGForPNG(
-          nodes, edges, {}, activeTheme,
+          nodes, edges, {}, activeTheme, plugins,
         );
         return exportToPNG(svg);
       },
       exportToOutline() {
-        return toMarkdownMultiRoot(mapData);
+        return toMarkdownMultiRoot(mapData, plugins);
       },
       getData() {
         return mapData;
@@ -542,7 +628,11 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         setSplitIndices({});
       },
       setMarkdown(md: string) {
-        setMapData(parseMarkdownMultiRoot(md));
+        if (plugins) {
+          setMapData(parseMarkdownWithFrontMatter(md, plugins).roots);
+        } else {
+          setMapData(parseMarkdownMultiRoot(md));
+        }
         setSplitIndices({});
       },
       fitView() {
@@ -553,7 +643,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
       },
     }),
     [
-      nodes, edges, mapData,
+      nodes, edges, mapData, plugins,
       handleAutoFit, handleDirectionChange, activeTheme,
     ],
   );
@@ -574,9 +664,11 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
           className="mindmap-text-editor"
           value={textContent}
           onChange={(e) => setTextContent(e.target.value)}
+          readOnly={readonlyProp}
           style={{
             background: activeTheme.canvas.bgColor,
             color: activeTheme.node.textColor,
+            opacity: readonlyProp ? 0.7 : 1,
           }}
         />
       )}
@@ -594,26 +686,70 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
       >
-        <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+        <g
+          transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
+          opacity={initialReady ? 1 : 0}
+          style={{ transition: initialReady ? 'opacity 0.4s ease-out' : 'none' }}
+        >
           {/* Edges */}
           <g className="mindmap-edges">
-            {edges.map((edge) => (
-              <path
-                key={edge.key}
-                d={edge.path}
-                stroke={edge.color}
-                strokeWidth={activeTheme.connection.strokeWidth}
-                strokeLinecap="round"
-                fill="none"
-                className={
-                  draggingCanvas ||
-                  floatingSubtreeIds.has(edge.fromId) ||
-                  floatingSubtreeIds.has(edge.toId)
-                    ? ""
-                    : "mindmap-edge-animated"
-                }
-              />
-            ))}
+            {/* Arrow marker for cross-links */}
+            {edges.some(e => e.isCrossLink) && (
+              <defs>
+                <marker id="mindmap-arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                  <path d="M0,0 L8,3 L0,6" fill="none" stroke="currentColor" strokeWidth={1.5} />
+                </marker>
+              </defs>
+            )}
+            {edges.map((edge) => {
+              const edgeExpandDelay = expandDelays[edge.toId];
+              const isExpandingEdge = edgeExpandDelay !== undefined;
+              return (
+              <g key={edge.key}>
+                <path
+                  d={edge.path}
+                  stroke={edge.color}
+                  strokeWidth={activeTheme.connection.strokeWidth}
+                  strokeLinecap="round"
+                  strokeDasharray={isExpandingEdge ? undefined : edge.strokeDasharray}
+                  markerEnd={edge.isCrossLink ? 'url(#mindmap-arrowhead)' : undefined}
+                  opacity={edge.isCrossLink ? 0.7 : 1}
+                  fill="none"
+                  className={
+                    isExpandingEdge
+                      ? "mindmap-edge-expanding"
+                      : draggingCanvas ||
+                        floatingSubtreeIds.has(edge.fromId) ||
+                        floatingSubtreeIds.has(edge.toId)
+                        ? ""
+                        : "mindmap-edge-animated"
+                  }
+                  style={isExpandingEdge ? { animationDelay: `${edgeExpandDelay}ms` } : undefined}
+                />
+                {/* Edge label */}
+                {edge.label && (() => {
+                  const fromNode = nodeMap[edge.fromId];
+                  const toNode = nodeMap[edge.toId];
+                  if (!fromNode || !toNode) return null;
+                  const mx = (fromNode.x + toNode.x) / 2;
+                  const my = (fromNode.y + toNode.y) / 2;
+                  return (
+                    <text
+                      x={mx} y={my - 6}
+                      textAnchor="middle"
+                      fontSize={11}
+                      fill={edge.color}
+                      opacity={0.8}
+                      fontFamily={activeTheme.node.fontFamily}
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      {edge.label}
+                    </text>
+                  );
+                })()}
+              </g>
+              );
+            })}
           </g>
 
           {/* Nodes */}
@@ -646,7 +782,17 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                   onEditCancel={cancelEdit}
                   onAddChild={handleAddChild}
                   onRemarkHover={handleRemarkHover}
+                  onFoldToggle={plugins ? (nodeId) => {
+                    const isExpanding = !foldOverrides[nodeId];
+                    if (isExpanding) {
+                      setExpandingFromId(nodeId);
+                      setTimeout(() => setExpandingFromId(null), 800);
+                    }
+                    setFoldOverrides(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
+                  } : undefined}
+                  expandDelay={expandDelays[node.id]}
                   readonly={readonlyProp}
+                  plugins={plugins}
                 />
               );
             })}
@@ -720,6 +866,11 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
               </>
             );
           })()}
+
+          {/* Plugin overlay layer (cross-link arrows, etc.) */}
+          {plugins && runRenderOverlay(plugins, nodes, edges, activeTheme).map((el, i) => (
+            <g key={`plugin-overlay-${i}`}>{el}</g>
+          ))}
         </g>
       </svg>
 

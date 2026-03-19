@@ -65,6 +65,10 @@ export interface ThemeColors {
     strokeColor: string
     fillColor: string
   }
+  highlight: {
+    textColor: string
+    bgColor: string
+  }
 }
 
 const SHARED = {
@@ -122,6 +126,10 @@ const LIGHT_THEME: ThemeColors = {
     strokeColor: '#4A90D9',
     fillColor: 'rgba(74, 144, 217, 0.08)',
   },
+  highlight: {
+    textColor: '#B8860B',
+    bgColor: 'rgba(255,213,79,0.3)',
+  },
 }
 
 const DARK_THEME: ThemeColors = {
@@ -150,6 +158,10 @@ const DARK_THEME: ThemeColors = {
   selection: {
     strokeColor: '#5B9BD5',
     fillColor: 'rgba(91, 155, 213, 0.15)',
+  },
+  highlight: {
+    textColor: '#FFD54F',
+    bgColor: 'rgba(255,235,59,0.35)',
   },
 }
 
