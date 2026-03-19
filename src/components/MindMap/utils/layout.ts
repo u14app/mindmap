@@ -1,5 +1,6 @@
-import type { MindMapData, LayoutNode, Edge, LayoutDirection } from '../types'
+import type { MindMapData, LayoutNode, Edge, LayoutDirection, TaskStatus } from '../types'
 import { BRANCH_COLORS, THEME } from './theme'
+import { stripInlineMarkdown } from './inline-markdown'
 
 interface InternalNode {
   id: string
@@ -14,6 +15,8 @@ interface InternalNode {
   y: number
   subtreeHeight: number
   parentId?: string
+  remark?: string
+  taskStatus?: TaskStatus
 }
 
 let _ctx: CanvasRenderingContext2D | null = null
@@ -25,10 +28,40 @@ function getCtx(): CanvasRenderingContext2D {
   return _ctx
 }
 
-function measureText(text: string, fontSize: number, fontWeight: number): number {
+function measureText(text: string, fontSize: number, fontWeight: number, fontFamily?: string): number {
   const ctx = getCtx()
-  ctx.font = `${fontWeight} ${fontSize}px ${THEME.root.fontFamily}`
+  ctx.font = `${fontWeight} ${fontSize}px ${fontFamily || THEME.root.fontFamily}`
   return ctx.measureText(text).width
+}
+
+// Task status icon width: icon size + gap
+const TASK_ICON_GAP = 4
+
+// Remark indicator width: emoji + gap
+const REMARK_INDICATOR_WIDTH = 20
+
+function measureFormattedText(
+  text: string,
+  fontSize: number,
+  fontWeight: number,
+  taskStatus?: TaskStatus,
+  hasRemark?: boolean,
+): number {
+  // Strip markdown markers and measure the plain text
+  const plainText = stripInlineMarkdown(text)
+  let width = measureText(plainText, fontSize, fontWeight)
+
+  // Add space for task status icon
+  if (taskStatus) {
+    width += fontSize * 0.9 + TASK_ICON_GAP
+  }
+
+  // Add space for remark indicator
+  if (hasRemark) {
+    width += REMARK_INDICATOR_WIDTH
+  }
+
+  return width
 }
 
 function buildInternal(
@@ -45,7 +78,7 @@ function buildInternal(
   const paddingH = isRoot ? THEME.root.paddingH : THEME.node.paddingH
   const paddingV = isRoot ? THEME.root.paddingV : THEME.node.paddingV
 
-  const textWidth = measureText(data.text, fontSize, fontWeight)
+  const textWidth = measureFormattedText(data.text, fontSize, fontWeight, data.taskStatus, !!data.remark)
   const width = textWidth + paddingH * 2
   const height = fontSize + paddingV * 2
 
@@ -69,6 +102,8 @@ function buildInternal(
     y: 0,
     subtreeHeight: 0,
     parentId,
+    remark: data.remark,
+    taskStatus: data.taskStatus,
   }
 }
 
@@ -115,6 +150,8 @@ function collectNodes(node: InternalNode, result: LayoutNode[]): void {
     depth: node.depth,
     side: node.side,
     parentId: node.parentId,
+    remark: node.remark,
+    taskStatus: node.taskStatus,
   })
   for (const child of node.children) {
     collectNodes(child, result)

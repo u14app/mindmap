@@ -3,32 +3,33 @@ import type { MindMapData } from "./components/MindMap";
 
 const demoData: MindMapData = {
   id: "root",
-  text: "Machine Learning",
+  text: "Machine Learning 🤖",
   children: [
     {
       id: "1",
-      text: "Supervised Learning",
+      text: "**Supervised Learning**",
+      remark: "Learning mapping functions from labeled data\nGoal is to make predictions on new data",
       children: [
-        { id: "1-1", text: "Classification" },
-        { id: "1-2", text: "Regression" },
-        { id: "1-3", text: "Decision Trees" },
+        { id: "1-1", text: "Classification", taskStatus: "done", remark: "Output consists of discrete category labels" },
+        { id: "1-2", text: "Regression", taskStatus: "done", remark: "Output consists of continuous numerical values" },
+        { id: "1-3", text: "Decision Trees", taskStatus: "doing" },
       ],
     },
     {
       id: "2",
-      text: "Unsupervised Learning",
+      text: "*Unsupervised Learning*",
       children: [
-        { id: "2-1", text: "Clustering" },
-        { id: "2-2", text: "Dimensionality Reduction" },
-        { id: "2-3", text: "Association Rules" },
+        { id: "2-1", text: "`K-Means` Clustering" },
+        { id: "2-2", text: "~~PCA~~ Dimensionality Reduction" },
+        { id: "2-3", text: "==Association Rules==" },
       ],
     },
     {
       id: "3",
       text: "Reinforcement Learning",
       children: [
-        { id: "3-1", text: "Q-Learning" },
-        { id: "3-2", text: "Policy Gradients" },
+        { id: "3-1", text: "Q-Learning", taskStatus: "todo" },
+        { id: "3-2", text: "Policy Gradients", taskStatus: "todo" },
       ],
     },
     {
@@ -44,7 +45,7 @@ const demoData: MindMapData = {
       id: "5",
       text: "Application Areas",
       children: [
-        { id: "5-1", text: "Natural Language Processing" },
+        { id: "5-1", text: "[NLP](https://en.wikipedia.org/wiki/NLP)" },
         { id: "5-2", text: "Computer Vision" },
         { id: "5-3", text: "Recommendation Systems" },
       ],

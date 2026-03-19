@@ -1,7 +1,11 @@
+export type TaskStatus = 'todo' | 'doing' | 'done'
+
 export interface MindMapData {
   id: string
   text: string
   children?: MindMapData[]
+  remark?: string
+  taskStatus?: TaskStatus
 }
 
 export type LayoutDirection = 'left' | 'right' | 'both'
@@ -23,6 +27,8 @@ export interface LayoutNode {
   depth: number
   side: 'left' | 'right' | 'root'
   parentId?: string
+  remark?: string
+  taskStatus?: TaskStatus
 }
 
 export interface Edge {

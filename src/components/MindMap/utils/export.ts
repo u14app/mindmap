@@ -1,6 +1,7 @@
 import type { LayoutNode, Edge } from '../types'
 import type { ThemeColors } from './theme'
 import { THEME } from './theme'
+import { buildSvgNodeTextString } from './inline-markdown'
 
 interface ExportOptions {
   padding?: number
@@ -8,6 +9,10 @@ interface ExportOptions {
   background?: string
 }
 
+/**
+ * Build SVG string for export. Uses pure SVG elements with inline styles.
+ * Works for both SVG file export and PNG conversion.
+ */
 export function buildExportSVG(
   nodes: LayoutNode[],
   edges: Edge[],
@@ -16,15 +21,12 @@ export function buildExportSVG(
 ): string {
   const { padding = 40, background = theme.canvas.bgColor } = options
 
-  // Compute bounding box
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
   for (const n of nodes) {
-    const nx = n.x
-    const ny = n.y
-    minX = Math.min(minX, nx - n.width / 2)
-    maxX = Math.max(maxX, nx + n.width / 2)
-    minY = Math.min(minY, ny - n.height / 2)
-    maxY = Math.max(maxY, ny + n.height / 2)
+    minX = Math.min(minX, n.x - n.width / 2)
+    maxX = Math.max(maxX, n.x + n.width / 2)
+    minY = Math.min(minY, n.y - n.height / 2)
+    maxY = Math.max(maxY, n.y + n.height / 2)
   }
 
   const width = maxX - minX + padding * 2
@@ -32,9 +34,8 @@ export function buildExportSVG(
   const offsetX = -minX + padding
   const offsetY = -minY + padding
 
-  // Build SVG string
   const parts: string[] = []
-  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`)
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`)
   parts.push(`<rect width="100%" height="100%" fill="${background}"/>`)
   parts.push(`<g transform="translate(${offsetX}, ${offsetY})">`)
 
@@ -49,9 +50,10 @@ export function buildExportSVG(
     const ny = node.y
 
     if (node.depth === 0) {
+      const { fontSize, fontWeight, fontFamily, textColor } = theme.root
       parts.push(`<g transform="translate(${nx}, ${ny})">`)
       parts.push(`<rect x="${-node.width / 2}" y="${-node.height / 2}" width="${node.width}" height="${node.height}" rx="${node.height / 2}" ry="${node.height / 2}" fill="${theme.root.bgColor}"/>`)
-      parts.push(`<text text-anchor="middle" dominant-baseline="central" fill="${theme.root.textColor}" font-size="${theme.root.fontSize}" font-weight="${theme.root.fontWeight}" font-family="${theme.root.fontFamily}">${escapeXml(node.text)}</text>`)
+      parts.push(buildSvgNodeTextString(node.text, fontSize, fontWeight, fontFamily, textColor, node.taskStatus, node.remark))
       parts.push(`</g>`)
     } else {
       const fontSize = node.depth === 1 ? theme.level1.fontSize : theme.node.fontSize
@@ -60,7 +62,7 @@ export function buildExportSVG(
       const underlineY = fontSize / 2 + 4
 
       parts.push(`<g transform="translate(${nx}, ${ny})">`)
-      parts.push(`<text text-anchor="middle" dominant-baseline="central" fill="${theme.node.textColor}" font-size="${fontSize}" font-weight="${fontWeight}" font-family="${theme.node.fontFamily}">${escapeXml(node.text)}</text>`)
+      parts.push(buildSvgNodeTextString(node.text, fontSize, fontWeight, theme.node.fontFamily, theme.node.textColor, node.taskStatus, node.remark))
       parts.push(`<line x1="${-textW / 2}" y1="${underlineY}" x2="${textW / 2}" y2="${underlineY}" stroke="${node.color}" stroke-width="2.5" stroke-linecap="round"/>`)
       parts.push(`</g>`)
     }
@@ -71,9 +73,8 @@ export function buildExportSVG(
   return parts.join('\n')
 }
 
-function escapeXml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
+// Backward-compatible alias
+export const buildExportSVGForPNG = buildExportSVG
 
 export function exportToPNG(
   svgString: string,

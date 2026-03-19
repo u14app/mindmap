@@ -23,6 +23,25 @@ export function updateNodeText(
   }
 }
 
+export function updateNodeFields(
+  node: MindMapData,
+  id: string,
+  fields: Partial<Pick<MindMapData, 'text' | 'taskStatus' | 'remark'>>,
+): MindMapData {
+  if (node.id === id) {
+    const updated = { ...node, ...fields }
+    // Only clear optional fields when explicitly passed as undefined in fields
+    if ('taskStatus' in fields && fields.taskStatus === undefined) delete updated.taskStatus
+    if ('remark' in fields && fields.remark === undefined) delete updated.remark
+    return updated
+  }
+  if (!node.children) return node
+  return {
+    ...node,
+    children: node.children.map((c) => updateNodeFields(c, id, fields)),
+  }
+}
+
 export function addChild(
   node: MindMapData,
   parentId: string,
@@ -123,6 +142,14 @@ export function updateNodeTextMulti(
   text: string,
 ): MindMapData[] {
   return roots.map((root) => updateNodeText(root, id, text))
+}
+
+export function updateNodeFieldsMulti(
+  roots: MindMapData[],
+  id: string,
+  fields: Partial<Pick<MindMapData, 'text' | 'taskStatus' | 'remark'>>,
+): MindMapData[] {
+  return roots.map((root) => updateNodeFields(root, id, fields))
 }
 
 export function addChildMulti(

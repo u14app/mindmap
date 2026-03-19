@@ -340,3 +340,116 @@
     right: 12px;
   }
 }
+
+/* Node rich text content (inside foreignObject) */
+.mindmap-node-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  line-height: 1;
+  box-sizing: border-box;
+}
+
+.mindmap-node-root-content {
+  line-height: 1;
+}
+
+/* Inline formatting styles */
+.mindmap-node-content strong {
+  font-weight: 700;
+}
+
+.mindmap-node-content em {
+  font-style: italic;
+}
+
+.mindmap-node-content del {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.mindmap-node-content .mindmap-inline-code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.88em;
+  background: rgba(128, 128, 128, 0.12);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.mindmap-node-content .mindmap-highlight {
+  background: rgba(255, 213, 79, 0.3);
+  color: #B8860B;
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.mindmap-node-content .mindmap-link {
+  color: #2563EB;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.mindmap-node-content .mindmap-link:hover {
+  text-decoration: underline;
+}
+
+.mindmap-node-content .mindmap-inline-image {
+  max-height: 1.2em;
+  max-width: 80px;
+  vertical-align: middle;
+  border-radius: 2px;
+}
+
+/* Dark theme overrides for inline formatting */
+.mindmap-node-root-content .mindmap-inline-code {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.mindmap-node-root-content .mindmap-highlight {
+  background: rgba(255, 213, 79, 0.25);
+  color: #FFD54F;
+}
+
+.mindmap-node-root-content .mindmap-link {
+  color: #93C5FD;
+}
+
+/* Task status icon */
+.mindmap-task-icon {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Remark indicator */
+.mindmap-remark-indicator {
+  font-size: 0.7em;
+  opacity: 0.5;
+  cursor: help;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.mindmap-remark-indicator:hover {
+  opacity: 1;
+}
+
+/* Remark tooltip */
+.mindmap-remark-tooltip {
+  position: absolute;
+  max-width: 280px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  pointer-events: none;
+  animation: mindmap-fade-in 0.15s ease-out;
+  font-family: system-ui, -apple-system, sans-serif;
+}

@@ -1,10 +1,25 @@
 import { useState, useCallback, useEffect } from 'react'
-import type { MindMapData, LayoutNode } from '../types'
-import { updateNodeTextMulti } from '../utils/tree-ops'
+import type { MindMapData, LayoutNode, TaskStatus } from '../types'
+import { updateNodeFieldsMulti } from '../utils/tree-ops'
 
 interface UseNodeEditParams {
   nodeMap: Record<string, LayoutNode>
   updateData: (updater: (prev: MindMapData[]) => MindMapData[]) => void
+}
+
+/**
+ * Extract task status prefix from text.
+ * Returns the task status and remaining text.
+ */
+function extractTaskStatus(text: string): { taskStatus?: TaskStatus; text: string } {
+  const match = text.match(/^\[([ x\-])\]\s+(.*)/)
+  if (!match) return { text }
+  const flag = match[1]
+  const rest = match[2]
+  if (flag === ' ') return { taskStatus: 'todo', text: rest }
+  if (flag === 'x') return { taskStatus: 'done', text: rest }
+  if (flag === '-') return { taskStatus: 'doing', text: rest }
+  return { text }
 }
 
 export function useNodeEdit({
@@ -37,7 +52,14 @@ export function useNodeEdit({
     if (editingId) {
       const trimmed = editText.trim()
       if (trimmed) {
-        updateData((prev) => updateNodeTextMulti(prev, editingId, trimmed))
+        // Parse task status prefix from the edited text
+        const { taskStatus, text: cleanText } = extractTaskStatus(trimmed)
+        updateData((prev) =>
+          updateNodeFieldsMulti(prev, editingId, {
+            text: cleanText,
+            taskStatus,
+          }),
+        )
       }
     }
     setEditingId(null)

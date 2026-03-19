@@ -14,7 +14,7 @@ import type {
   LayoutDirection,
 } from "./types";
 import { layoutMultiRoot, computeEdgePath } from "./utils/layout";
-import { buildExportSVG, exportToPNG } from "./utils/export";
+import { buildExportSVG, buildExportSVGForPNG, exportToPNG } from "./utils/export";
 import { parseMarkdownMultiRoot, toMarkdownMultiRoot } from "./utils/markdown";
 import { resolveMessages, detectLocale } from "./utils/i18n";
 import {
@@ -80,6 +80,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   const [mode, setMode] = useState<'view' | 'text'>('view');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [textContent, setTextContent] = useState('');
+  const [remarkTooltip, setRemarkTooltip] = useState<{ nodeId: string; text: string; x: number; y: number } | null>(null);
 
   // Sync external data / markdown
   useEffect(() => {
@@ -238,6 +239,31 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     setContextMenu(null);
   }, []);
 
+  // Remark tooltip handler
+  const handleRemarkHover = useCallback((nodeId: string | null) => {
+    if (!nodeId) {
+      setRemarkTooltip(null);
+      return;
+    }
+    const node = nodeMap[nodeId];
+    if (!node || !node.remark) {
+      setRemarkTooltip(null);
+      return;
+    }
+    // Position tooltip near the node (in screen coordinates)
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+    const rect = svgEl.getBoundingClientRect();
+    const screenX = (node.x + node.width / 2) * zoom + pan.x;
+    const screenY = (node.y - node.height / 2) * zoom + pan.y;
+    setRemarkTooltip({
+      nodeId,
+      text: node.remark,
+      x: Math.min(screenX, rect.width - 300),
+      y: screenY - 8,
+    });
+  }, [nodeMap, zoom, pan]);
+
   // Add child (with optional side for root nodes)
   const handleAddChild = useCallback(
     (e: React.MouseEvent, parentId: string, side?: "left" | "right") => {
@@ -302,7 +328,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   }, [nodes, edges, activeTheme, closeContextMenu]);
 
   const handleExportPNG = useCallback(async () => {
-    const svg = buildExportSVG(
+    const svg = buildExportSVGForPNG(
       nodes, edges, {}, activeTheme,
     );
     const blob = await exportToPNG(svg);
@@ -500,7 +526,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         );
       },
       async exportToPNG() {
-        const svg = buildExportSVG(
+        const svg = buildExportSVGForPNG(
           nodes, edges, {}, activeTheme,
         );
         return exportToPNG(svg);
@@ -619,6 +645,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                   onEditCommit={commitEdit}
                   onEditCancel={cancelEdit}
                   onAddChild={handleAddChild}
+                  onRemarkHover={handleRemarkHover}
                   readonly={readonlyProp}
                 />
               );
@@ -724,6 +751,23 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
           onDirectionChange={handleDirectionChange}
           onClose={closeContextMenu}
         />
+      )}
+
+      {remarkTooltip && (
+        <div
+          className="mindmap-remark-tooltip"
+          style={{
+            left: remarkTooltip.x,
+            top: remarkTooltip.y,
+            transform: 'translateY(-100%)',
+            background: activeTheme.contextMenu.bgColor,
+            color: activeTheme.contextMenu.textColor,
+            borderColor: activeTheme.contextMenu.borderColor,
+            border: `1px solid ${activeTheme.contextMenu.borderColor}`,
+          }}
+        >
+          {remarkTooltip.text}
+        </div>
       )}
 
     </div>
