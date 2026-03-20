@@ -13,30 +13,39 @@ Zero dependencies. SVG-based. Keyboard-first. Dark mode ready.
 [![bundle size](https://img.shields.io/bundlephobia/minzip/@xiangfa/mindmap?style=flat-square)](https://bundlephobia.com/package/@xiangfa/mindmap)
 [![license](https://img.shields.io/github/license/u14app/mindmap?style=flat-square)](https://github.com/u14app/mindmap/blob/main/LICENSE)
 
+English | [中文](README.zh-CN.md)
+
 </div>
 
 ---
 
 ## Features
 
-- **AI stream ready** - natively supports AI streaming output; feed a markdown list in, get a real-time mind map out
-- **Pure SVG rendering** - no canvas, no external layout engines, razor-sharp at any zoom level
-- **iOS-style UI** - frosted glass controls, rounded corners, smooth animations, clean and polished design
-- **Readonly mode** - display-only mode with pan/zoom/select but no editing; ideal for presentations and embeds
-- **Multiple root nodes** - build separate trees on the same canvas
-- **Drag & drop** - reorder siblings by dragging; drag root's children across the center line to rebalance sides; ghost placeholder shows target position while dragged node follows cursor
-- **Keyboard shortcuts** - Enter to create, Delete to remove, Cmd+C/V to copy/paste, Shift+ shortcuts for zoom & layout
-- **Markdown I/O** - feed a markdown list in, get a mind map out (great for AI streaming)
-- **i18n** - auto-detects browser language; built-in Chinese and English, fully customizable via props
-- **Dark mode** - auto-detects `prefers-color-scheme`, or set `light` / `dark` explicitly
-- **Export** - SVG, high-DPI PNG, and Markdown export out of the box
-- **Import** - paste JSON or markdown data via the context menu import dialog
-- **Context menu** - right-click to add root nodes, import data, export, or change layout
-- **Layout modes** - left, right, or balanced (both) layout directions
-- **Help overlay** - built-in keyboard shortcut reference and project info (separate dialogs)
-- **Mobile optimized** - full touch support with single-finger pan/drag and two-finger pinch-to-zoom centered on content
-- **Toolbar control** - show/hide individual toolbar buttons via the `toolbar` prop
-- **Tiny footprint** - zero runtime dependencies beyond React
+- **AI stream ready** — natively supports AI streaming output; feed a markdown list in, get a real-time mind map out
+- **Pure SVG rendering** — no canvas, no external layout engines, razor-sharp at any zoom level
+- **iOS-style UI** — frosted glass controls, rounded corners, smooth animations, clean and polished design
+- **Plugin system** — 7 built-in plugins for extended syntax (dotted lines, folding, multi-line, tags, cross-links, LaTeX, frontmatter); fully extensible
+- **Inline formatting** — **bold**, _italic_, `code`, ~~strikethrough~~, ==highlight==, and [links](url) inside nodes
+- **Task status** — `[x]` done, `[ ]` todo, `[-]` in-progress checkboxes
+- **Remarks** — multi-line remarks attached to nodes via `>` syntax
+- **Text editing mode** — toggle between visual mind map and plain-text markdown editing
+- **Full-screen mode** — expand the component to fill the viewport
+- **LaTeX math** — render `$...$` inline and `$$...$$` display formulas (requires KaTeX)
+- **Cross-links** — draw edges between arbitrary nodes via `{#anchor}` / `-> {#target}`
+- **Readonly mode** — display-only with pan/zoom/select but no editing; ideal for presentations and embeds
+- **Multiple root nodes** — build separate trees on the same canvas
+- **Drag & drop** — reorder siblings by dragging; drag root's children across the center line to rebalance sides
+- **Keyboard shortcuts** — Enter to create, Delete to remove, Cmd+C/V to copy/paste, Shift+ shortcuts for zoom & layout
+- **Markdown I/O** — feed a markdown list in, get a mind map out (great for AI streaming)
+- **i18n** — auto-detects browser language; built-in Chinese and English, fully customizable via props
+- **Dark mode** — auto-detects `prefers-color-scheme`, or set `light` / `dark` explicitly
+- **Export** — SVG, high-DPI PNG, and Markdown export out of the box
+- **Import** — paste JSON or markdown data via the context menu import dialog
+- **Context menu** — right-click to add root nodes, import data, export, or change layout
+- **Layout modes** — left, right, or balanced (both) layout directions
+- **Mobile optimized** — full touch support with single-finger pan/drag and two-finger pinch-to-zoom centered on content
+- **Toolbar control** — show/hide zoom controls via the `toolbar` prop
+- **Tiny footprint** — zero runtime dependencies beyond React
 
 ## Installation
 
@@ -51,34 +60,27 @@ pnpm add @xiangfa/mindmap
 yarn add @xiangfa/mindmap
 ```
 
+For LaTeX math rendering, also install KaTeX (optional):
+
+```bash
+npm install katex
+```
+
 ## Quick Start
 
 ```tsx
 import { MindMap } from "@xiangfa/mindmap";
-import "@xiangfa/mindmap/style.css";
 
-const data = {
-  id: "root",
-  text: "My Mind Map",
-  children: [
-    {
-      id: "1",
-      text: "First Topic",
-      children: [
-        { id: "1-1", text: "Subtopic A" },
-        { id: "1-2", text: "Subtopic B" },
-      ],
-    },
-    { id: "2", text: "Second Topic" },
-  ],
-};
+const data = `
+My Mind Map
+  - First Topic
+    - Subtopic A
+    - Subtopic B
+  - Second Topic
+`;
 
 function App() {
-  return (
-    <div style={{ width: "100vw", height: "100vh" }}>
-      <MindMap data={data} />
-    </div>
-  );
+  return <MindMap markdown={data} />;
 }
 ```
 
@@ -96,29 +98,29 @@ Pass an array to render independent trees on the same canvas:
 
 ### Markdown Input
 
-Feed a markdown list directly - perfect for streaming AI responses:
+Feed a markdown list directly — perfect for streaming AI responses:
 
 ```tsx
 const markdown = `
-- Machine Learning
+Machine Learning
   - Supervised Learning
     - Classification
     - Regression
   - Unsupervised Learning
 
-- Application Areas
+Application Areas
   - NLP
   - Computer Vision
-`
+`;
 
-<MindMap markdown={markdown} />
+<MindMap markdown={markdown} />;
 ```
 
 Separate root trees with a blank line in the markdown.
 
 ### Readonly Mode
 
-Display a mind map without allowing edits - perfect for presentations, documentation, or embedding:
+Display a mind map without allowing edits — perfect for presentations, documentation, or embedding:
 
 ```tsx
 <MindMap data={data} readonly />
@@ -176,6 +178,39 @@ The UI language is auto-detected from the browser's language setting. Built-in s
 />;
 ```
 
+### Plugins
+
+The plugin system extends the mind map with additional syntax and rendering capabilities. All 7 built-in plugins are enabled by default. You can also select specific plugins:
+
+```tsx
+import {
+  MindMap,
+  allPlugins, // all 7 plugins
+  frontMatterPlugin, // YAML frontmatter
+  dottedLinePlugin, // dotted line edges
+  foldingPlugin, // collapsible nodes
+  multiLinePlugin, // multi-line content
+  tagsPlugin, // hashtag support
+  crossLinkPlugin, // cross-references
+  latexPlugin, // LaTeX math (requires KaTeX)
+} from "@xiangfa/mindmap";
+
+{
+  /* Use all plugins (default behavior) */
+}
+<MindMap data={data} plugins={allPlugins} />;
+
+{
+  /* Pick only the plugins you need */
+}
+<MindMap data={data} plugins={[foldingPlugin, tagsPlugin]} />;
+
+{
+  /* Disable all plugins */
+}
+<MindMap data={data} plugins={[]} />;
+```
+
 ### Ref API
 
 Access imperative methods via a ref:
@@ -214,7 +249,7 @@ function App() {
 
 ### Toolbar Visibility
 
-Control which toolbar buttons are visible:
+Control the toolbar via the `toolbar` prop:
 
 ```tsx
 {
@@ -223,50 +258,162 @@ Control which toolbar buttons are visible:
 <MindMap data={data} toolbar={false} />;
 
 {
-  /* Hide only zoom controls */
+  /* Hide zoom controls (text mode and fullscreen buttons remain) */
 }
 <MindMap data={data} toolbar={{ zoom: false }} />;
-
-{
-  /* Hide help and shortcuts buttons */
-}
-<MindMap data={data} toolbar={{ help: false, shortcuts: false }} />;
 ```
 
-```ts
-interface ToolbarConfig {
-  zoom?: boolean; // zoom controls (default: true)
-  direction?: boolean; // layout direction controls (default: true)
-  help?: boolean; // help button (default: true)
-  shortcuts?: boolean; // shortcuts button (default: true)
-}
-```
+The toolbar includes zoom controls (bottom-left) and text mode / fullscreen toggle buttons (bottom-right). The `toolbar` prop controls zoom visibility; the text mode and fullscreen buttons are always available.
 
 ### Mobile / Touch Support
 
 The mind map has full touch support out of the box:
 
-- **Single finger on canvas** - pan the view
-- **Single finger on node** - drag to reorder siblings
-- **Two-finger pinch** - zoom in/out (always centers on mind map content)
+- **Single finger on canvas** — pan the view
+- **Single finger on node** — drag to reorder siblings
+- **Two-finger pinch** — zoom in/out (always centers on mind map content)
 
 No configuration needed — touch support is always active alongside mouse events.
+
+## Extended Syntax
+
+The mind map supports rich markdown-like syntax. Features marked with _(plugin)_ require the corresponding plugin to be enabled (all are enabled by default).
+
+### Inline Formatting
+
+Format text inside any node:
+
+```
+**bold text**
+*italic text*
+`inline code`
+~~strikethrough~~
+==highlight==
+[link text](https://example.com)
+```
+
+### Task Status
+
+Add checkboxes to track task state:
+
+```
+- [x] Completed task
+- [ ] Pending task
+- [-] In-progress task
+```
+
+### Remarks
+
+Attach multi-line remarks to a node using `>`:
+
+```
+- Node with a remark
+  > This is a remark line
+  > It can span multiple lines
+```
+
+### Frontmatter _(plugin)_
+
+Set default options at the top of your markdown:
+
+```
+---
+direction: left
+theme: dark
+---
+- Root Node
+  - Child
+```
+
+Supported fields: `direction` (`left` | `right` | `both`), `theme` (`light` | `dark` | `auto`).
+
+### Dotted Line _(plugin)_
+
+Use `-.` instead of `-` to render a node with a dotted edge:
+
+```
+- Solid edge node
+  -. Dotted edge child
+```
+
+### Folding / Collapsible Nodes _(plugin)_
+
+Use `+` instead of `-` to make a node initially collapsed:
+
+```
+- Visible node
+  + This node starts collapsed
+    - Hidden child
+```
+
+### Multi-line Content _(plugin)_
+
+Use `|` to add continuation lines to a node:
+
+```
+- First line of the node
+  | Second line
+  | Third line
+```
+
+### Tags _(plugin)_
+
+Add hashtags to nodes for visual labeling:
+
+```
+- React #framework #frontend
+- PostgreSQL #database
+```
+
+### Cross-links _(plugin)_
+
+Draw edges between arbitrary nodes:
+
+```
+- Node A {#a}
+  - Child
+- Node B {#b}
+  -> {#a} "references"
+```
+
+- `{#id}` — define an anchor on a node
+- `-> {#id}` — solid cross-link to the anchor
+- `-> {#id} "label"` — cross-link with a label
+- `-.> {#id}` — dotted cross-link
+
+### LaTeX Math _(plugin)_
+
+Render mathematical formulas (requires [KaTeX](https://katex.org/)):
+
+```
+- Inline math: $E = mc^2$
+- Display math: $$\sum_{i=1}^{n} x_i$$
+```
 
 ## API Reference
 
 ### Props
 
-| Prop               | Type                            | Default    | Description                                                               |
-| ------------------ | ------------------------------- | ---------- | ------------------------------------------------------------------------- |
-| `data`             | `MindMapData \| MindMapData[]`  | _required_ | Tree data (single root or array of roots)                                 |
-| `markdown`         | `string`                        | -          | Markdown list source (overrides `data` when set)                          |
-| `defaultDirection` | `'left' \| 'right' \| 'both'`   | `'both'`   | Initial layout direction                                                  |
-| `theme`            | `'light' \| 'dark' \| 'auto'`   | `'auto'`   | Color theme                                                               |
-| `locale`           | `string`                        | _auto_     | UI language (auto-detected from browser, or `'zh-CN'`, `'en-US'`, custom) |
-| `messages`         | `Partial<MindMapMessages>`      | -          | Override any UI text string                                               |
-| `readonly`         | `boolean`                       | `false`    | Display-only mode (no editing, no creating)                               |
-| `toolbar`          | `boolean \| ToolbarConfig`      | `true`     | Show/hide toolbar buttons (zoom, direction, help, shortcuts)              |
-| `onDataChange`     | `(data: MindMapData[]) => void` | -          | Called when the tree is modified by user interaction                      |
+| Prop               | Type                            | Default      | Description                                                               |
+| ------------------ | ------------------------------- | ------------ | ------------------------------------------------------------------------- |
+| `data`             | `MindMapData \| MindMapData[]`  | _required_   | Tree data (single root or array of roots)                                 |
+| `markdown`         | `string`                        | -            | Markdown list source (overrides `data` when set)                          |
+| `defaultDirection` | `'left' \| 'right' \| 'both'`   | `'both'`     | Initial layout direction                                                  |
+| `theme`            | `'light' \| 'dark' \| 'auto'`   | `'auto'`     | Color theme                                                               |
+| `locale`           | `string`                        | _auto_       | UI language (auto-detected from browser, or `'zh-CN'`, `'en-US'`, custom) |
+| `messages`         | `Partial<MindMapMessages>`      | -            | Override any UI text string                                               |
+| `readonly`         | `boolean`                       | `false`      | Display-only mode (no editing, no creating)                               |
+| `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | Show/hide zoom controls                                                   |
+| `plugins`          | `MindMapPlugin[]`               | `allPlugins` | Plugins to enable for extended syntax                                     |
+| `onDataChange`     | `(data: MindMapData[]) => void` | -            | Called when the tree is modified by user interaction                      |
+
+### ToolbarConfig
+
+```ts
+interface ToolbarConfig {
+  zoom?: boolean; // show zoom controls (default: true)
+}
+```
 
 ### Ref Methods
 
@@ -288,6 +435,21 @@ interface MindMapData {
   id: string;
   text: string;
   children?: MindMapData[];
+  remark?: string; // multi-line remark
+  taskStatus?: "todo" | "doing" | "done";
+  // Plugin extension fields (populated by corresponding plugins)
+  dottedLine?: boolean; // dotted-line plugin
+  multiLineContent?: string[]; // multi-line plugin
+  tags?: string[]; // tags plugin
+  anchorId?: string; // cross-link plugin
+  crossLinks?: CrossLink[]; // cross-link plugin
+  collapsed?: boolean; // folding plugin
+}
+
+interface CrossLink {
+  targetAnchorId: string;
+  label?: string;
+  dotted?: boolean;
 }
 ```
 
@@ -319,14 +481,34 @@ These are also exported for advanced use cases:
 
 ```ts
 import {
-  parseMarkdownList, // md string -> single MindMapData
-  toMarkdownList, // single MindMapData -> md string
-  parseMarkdownMultiRoot, // md string -> MindMapData[]
-  toMarkdownMultiRoot, // MindMapData[] -> md string
+  // Markdown parsing
+  parseMarkdownList, // md string → single MindMapData
+  toMarkdownList, // single MindMapData → md string
+  parseMarkdownMultiRoot, // md string → MindMapData[]
+  toMarkdownMultiRoot, // MindMapData[] → md string
+  parseMarkdownWithFrontMatter, // md string → MindMapData[] (with plugin support)
+
+  // Inline markdown
+  parseInlineMarkdown, // text → inline tokens
+  stripInlineMarkdown, // remove markdown formatting from text
+
+  // Export
   buildExportSVG, // programmatic SVG generation
-  exportToPNG, // SVG string -> PNG Blob
+  exportToPNG, // SVG string → PNG Blob
+
+  // i18n
   resolveMessages, // build a full MindMapMessages object
   detectLocale, // detect browser locale
+
+  // Plugins
+  allPlugins, // all 7 built-in plugins
+  frontMatterPlugin,
+  dottedLinePlugin,
+  foldingPlugin,
+  multiLinePlugin,
+  tagsPlugin,
+  crossLinkPlugin,
+  latexPlugin,
 } from "@xiangfa/mindmap";
 ```
 
