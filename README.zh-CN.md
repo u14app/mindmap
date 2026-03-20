@@ -70,6 +70,7 @@ npm install katex
 
 ```tsx
 import { MindMap } from "@xiangfa/mindmap";
+import "@xiangfa/mindmap/style.css";
 
 const data = `
 我的思维导图

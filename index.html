@@ -5,8 +5,130 @@
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Open MindMap</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.cn/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.cn/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              outline: "#717786",
+              "on-secondary": "#ffffff",
+              primary: "#007AFF",
+              "on-error-container": "#93000a",
+              "surface-variant": "#e3e2e7",
+              "primary-container": "#0058bc",
+              "on-error": "#ffffff",
+              "on-tertiary-container": "#fffbff",
+              "on-secondary-fixed": "#001a41",
+              "surface-container-highest": "#e3e2e7",
+              background: "#ffffff",
+              "inverse-on-surface": "#f1f0f5",
+              "on-surface-variant": "#414755",
+              "surface-dim": "#dad9df",
+              tertiary: "#9e3d00",
+              "inverse-primary": "#adc6ff",
+              "surface-container": "#f2f2f7",
+              "on-tertiary-fixed": "#351000",
+              "error-container": "#ffdad6",
+              secondary: "#405e96",
+              "on-primary-fixed-variant": "#004493",
+              "on-tertiary": "#ffffff",
+              "on-primary-container": "#fefcff",
+              "inverse-surface": "#2f3034",
+              "secondary-fixed-dim": "#adc6ff",
+              "on-surface": "#1a1b1f",
+              "secondary-container": "#a1befd",
+              "outline-variant": "#c1c6d7",
+              "primary-fixed": "#d8e2ff",
+              "on-background": "#1a1b1f",
+              "on-primary": "#ffffff",
+              "secondary-fixed": "#d8e2ff",
+              surface: "#ffffff",
+              "primary-fixed-dim": "#adc6ff",
+              "surface-tint": "#007AFF",
+              error: "#ba1a1a",
+              "on-secondary-fixed-variant": "#26467d",
+              "tertiary-fixed": "#ffdbcc",
+              "surface-container-low": "#f9f9fb",
+              "on-secondary-container": "#2d4c83",
+              "surface-bright": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "on-primary-fixed": "#001a41",
+              "surface-container-high": "#ebebf0",
+              "tertiary-fixed-dim": "#ffb595",
+              "on-tertiary-fixed-variant": "#7c2e00",
+              "tertiary-container": "#c64f00",
+            },
+            fontFamily: {
+              headline: ["Inter", "sans-serif"],
+              body: ["Inter", "sans-serif"],
+              label: ["Inter", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "0.5rem",
+              lg: "0.5rem",
+              xl: "1rem",
+              "2xl": "1.5rem",
+              "3xl": "2rem",
+              full: "9999px",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        letter-spacing: -0.01em;
+      }
+      .glass-effect {
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+      }
+      .hero-gradient {
+        background: radial-gradient(
+          circle at top center,
+          rgba(0, 122, 255, 0.03) 0%,
+          rgba(255, 255, 255, 0) 60%
+        );
+      }
+      .text-gradient {
+        background: linear-gradient(180deg, #1a1b1f 0%, #414755 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .code-glow {
+        box-shadow: 0 0 40px rgba(0, 122, 255, 0.1);
+      }
+      @keyframes shimmer {
+        0% {
+          transform: translateX(-100%);
+        }
+        100% {
+          transform: translateX(200%);
+        }
+      }
+    </style>
   </head>
-  <body>
+  <body class="bg-background text-on-surface">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
