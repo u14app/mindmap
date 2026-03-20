@@ -11,6 +11,7 @@ import type {
   MindMapData,
   MindMapProps,
   MindMapRef,
+  MindMapEvent,
   LayoutDirection,
   ThemeMode,
 } from "./types";
@@ -60,6 +61,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     readonly: readonlyProp = false,
     toolbar = true,
     onDataChange,
+    onEvent,
     plugins: pluginsProp,
   },
   ref,
@@ -149,6 +151,13 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     [onDataChange],
   );
 
+  // --- Event emission ---
+  const emitRef = useRef(onEvent);
+  emitRef.current = onEvent;
+  const emit = useCallback((event: MindMapEvent) => {
+    emitRef.current?.(event);
+  }, []);
+
   // --- Theme ---
   const activeTheme = useTheme(fmTheme ?? themeProp);
 
@@ -217,7 +226,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   // --- Pan / Zoom ---
   const {
     pan, setPan, zoom, setZoom,
-    animateTo, autoFit, handleWheel, zoomIn, zoomOut,
+    animateTo, autoFit, zoomIn, zoomOut,
     contentCenter, panToNode,
   } = usePanZoom(svgRef, nodes);
 
@@ -242,7 +251,9 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     editingId, editText, setEditText,
     pendingEditId, setPendingEditId,
     handleNodeDoubleClick, commitEdit, cancelEdit,
-  } = useNodeEdit({ nodeMap, updateData });
+  } = useNodeEdit({ nodeMap, updateData, onTextChange: (nodeId, oldText, newText) => {
+    emit({ type: 'nodeTextChange', nodeId, oldText, newText });
+  } });
 
   // --- New Node Animation ---
   const newNodeIds = useNewNodeAnimation(nodes);
@@ -296,16 +307,18 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
       e.stopPropagation();
       if (!didDragRef.current) {
         setSelectedNodeId(nodeId);
+        emit({ type: 'nodeSelect', nodeId });
       }
     },
-    [didDragRef],
+    [didDragRef, emit],
   );
 
   const handleCanvasClick = useCallback(() => {
     if (!didDragRef.current) {
       setSelectedNodeId(null);
+      emit({ type: 'nodeSelect', nodeId: null });
     }
-  }, [didDragRef]);
+  }, [didDragRef, emit]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -386,21 +399,24 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         updateData((prev) => addChildMulti(prev, parentId, newChild));
       }
 
+      emit({ type: 'nodeAdd', node: newChild, parentId });
       setPendingEditId(newId);
       setEditText("");
     },
-    [updateData, mapData, direction, splitIndices, setPendingEditId, setEditText, t, readonlyProp],
+    [updateData, mapData, direction, splitIndices, setPendingEditId, setEditText, t, readonlyProp, emit],
   );
 
   // Context menu: new root node
   const handleNewRootNode = useCallback(() => {
     if (readonlyProp) return;
     const newId = generateId();
-    updateData((prev) => [...prev, { id: newId, text: t.newNode }]);
+    const newNode: MindMapData = { id: newId, text: t.newNode };
+    updateData((prev) => [...prev, newNode]);
+    emit({ type: 'nodeAdd', node: newNode, parentId: null });
     setPendingEditId(newId);
     setEditText("");
     closeContextMenu();
-  }, [updateData, closeContextMenu, setPendingEditId, setEditText, t, readonlyProp]);
+  }, [updateData, closeContextMenu, setPendingEditId, setEditText, t, readonlyProp, emit]);
 
   const handleExportSVG = useCallback(() => {
     const svg = buildExportSVG(
@@ -439,7 +455,8 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   const handleDirectionChange = useCallback((dir: LayoutDirection) => {
     setDirection(dir);
     setSplitIndices({});
-  }, []);
+    emit({ type: 'directionChange', direction: dir });
+  }, [emit]);
 
   // Mode toggle
   const handleModeToggle = useCallback(() => {
@@ -447,6 +464,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
       if (prev === 'view') {
         // Entering text mode: serialize current data
         setTextContent(toMarkdownMultiRoot(mapData, plugins));
+        emit({ type: 'modeChange', mode: 'text' });
         return 'text';
       } else {
         // Exiting text mode: parse text back to data
@@ -455,10 +473,11 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
           : parseMarkdownMultiRoot(textContent);
         updateData(() => parsed);
         setSplitIndices({});
+        emit({ type: 'modeChange', mode: 'view' });
         return 'view';
       }
     });
-  }, [mapData, textContent, updateData, plugins]);
+  }, [mapData, textContent, updateData, plugins, emit]);
 
   // Fullscreen toggle
   const handleFullscreenToggle = useCallback(() => {
@@ -474,11 +493,22 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   // Sync fullscreen state
   useEffect(() => {
     const handler = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      emit({ type: 'fullscreenChange', fullscreen: fs });
     };
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
-  }, []);
+  }, [emit]);
+
+  // Emit zoom changes (skip initial render)
+  const prevZoomRef = useRef(zoom);
+  useEffect(() => {
+    if (zoom !== prevZoomRef.current) {
+      prevZoomRef.current = zoom;
+      emit({ type: 'zoomChange', zoom });
+    }
+  }, [zoom, emit]);
 
   // Keyboard handler
   const handleKeyDown = useCallback(
@@ -555,6 +585,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
         setPendingEditId(newId);
         setEditText("");
+        emit({ type: 'nodeAdd', node: newChild, parentId: selectedNodeId });
         return;
       }
 
@@ -563,6 +594,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         e.preventDefault();
         const isRoot = mapData.some((root) => root.id === selectedNodeId);
         if (isRoot && mapData.length <= 1) return;
+        emit({ type: 'nodeDelete', nodeId: selectedNodeId });
         updateData((prev) => removeNodeMulti(prev, selectedNodeId));
         setSelectedNodeId(null);
         return;
@@ -581,6 +613,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         clipboardRef.current = findSubtreeMulti(mapData, selectedNodeId);
         const isRoot = mapData.some((root) => root.id === selectedNodeId);
         if (isRoot && mapData.length <= 1) return;
+        emit({ type: 'nodeDelete', nodeId: selectedNodeId });
         updateData((prev) => removeNodeMulti(prev, selectedNodeId));
         setSelectedNodeId(null);
         return;
@@ -591,6 +624,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         e.preventDefault();
         const pastedSubtree = regenerateIds(clipboardRef.current);
         updateData((prev) => addChildMulti(prev, selectedNodeId, pastedSubtree));
+        emit({ type: 'nodeAdd', node: pastedSubtree, parentId: selectedNodeId });
         return;
       }
     },
@@ -598,7 +632,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
       editingId, selectedNodeId, mapData, direction, splitIndices,
       updateData, contextMenu, closeContextMenu,
       setPendingEditId, setEditText, t,
-      zoomIn, zoomOut, handleAutoFit, handleDirectionChange, readonlyProp,
+      zoomIn, zoomOut, handleAutoFit, handleDirectionChange, readonlyProp, emit,
     ],
   );
 
@@ -656,6 +690,66 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     return () => window.removeEventListener("click", handleClick);
   }, [contextMenu, closeContextMenu]);
 
+  // --- Tab indent/dedent in text mode ---
+  const handleTextKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Tab') return
+    e.preventDefault()
+    const ta = e.currentTarget
+    const { selectionStart, selectionEnd, value } = ta
+    const indent = '  '
+
+    if (e.shiftKey) {
+      // Shift+Tab: dedent
+      const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1
+      if (selectionStart === selectionEnd) {
+        const lineText = value.slice(lineStart, selectionEnd)
+        const match = lineText.match(/^ {1,2}/)
+        if (!match) return
+        const removed = match[0].length
+        const newValue = value.slice(0, lineStart) + lineText.slice(removed) + value.slice(selectionEnd)
+        setTextContent(newValue)
+        requestAnimationFrame(() => {
+          ta.selectionStart = ta.selectionEnd = Math.max(lineStart, selectionStart - removed)
+        })
+      } else {
+        const block = value.slice(lineStart, selectionEnd)
+        const lines = block.split('\n')
+        let totalRemoved = 0
+        let firstRemoved = 0
+        const dedented = lines.map((line, i) => {
+          const m = line.match(/^ {1,2}/)
+          const r = m ? m[0].length : 0
+          totalRemoved += r
+          if (i === 0) firstRemoved = r
+          return line.slice(r)
+        }).join('\n')
+        setTextContent(value.slice(0, lineStart) + dedented + value.slice(selectionEnd))
+        requestAnimationFrame(() => {
+          ta.selectionStart = selectionStart - firstRemoved
+          ta.selectionEnd = selectionEnd - totalRemoved
+        })
+      }
+    } else {
+      // Tab: indent
+      if (selectionStart === selectionEnd) {
+        setTextContent(value.slice(0, selectionStart) + indent + value.slice(selectionEnd))
+        requestAnimationFrame(() => {
+          ta.selectionStart = ta.selectionEnd = selectionStart + 2
+        })
+      } else {
+        const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1
+        const block = value.slice(lineStart, selectionEnd)
+        const lines = block.split('\n')
+        const indented = lines.map(line => indent + line).join('\n')
+        setTextContent(value.slice(0, lineStart) + indented + value.slice(selectionEnd))
+        requestAnimationFrame(() => {
+          ta.selectionStart = selectionStart + 2
+          ta.selectionEnd = selectionEnd + lines.length * 2
+        })
+      }
+    }
+  }, [])
+
   // --- Render ---
   return (
     <div ref={containerRef} className="mindmap-container">
@@ -664,6 +758,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
           className="mindmap-text-editor"
           value={textContent}
           onChange={(e) => setTextContent(e.target.value)}
+          onKeyDown={handleTextKeyDown}
           readOnly={readonlyProp}
           style={{
             background: activeTheme.canvas.bgColor,
@@ -677,7 +772,6 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         className={`mindmap-svg ${draggingCanvas ? "dragging-canvas" : ""} ${floatingNodeId ? "dragging-node" : ""}`}
         style={{ background: activeTheme.canvas.bgColor, display: mode === 'text' ? 'none' : 'block' }}
         tabIndex={0}
-        onWheel={handleWheel}
         onMouseDown={handleCanvasMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -687,6 +781,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         onContextMenu={handleContextMenu}
       >
         <g
+          className="mindmap-canvas"
           transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
           opacity={initialReady ? 1 : 0}
           style={{ transition: initialReady ? 'opacity 0.4s ease-out' : 'none' }}
@@ -715,15 +810,17 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                   markerEnd={edge.isCrossLink ? 'url(#mindmap-arrowhead)' : undefined}
                   opacity={edge.isCrossLink ? 0.7 : 1}
                   fill="none"
-                  className={
+                  className={[
+                    "mindmap-edge",
+                    edge.isCrossLink ? "mindmap-edge-cross-link" : "",
                     isExpandingEdge
                       ? "mindmap-edge-expanding"
                       : draggingCanvas ||
                         floatingSubtreeIds.has(edge.fromId) ||
                         floatingSubtreeIds.has(edge.toId)
                         ? ""
-                        : "mindmap-edge-animated"
-                  }
+                        : "mindmap-edge-animated",
+                  ].filter(Boolean).join(" ")}
                   style={isExpandingEdge ? { animationDelay: `${edgeExpandDelay}ms` } : undefined}
                 />
                 {/* Edge label */}
@@ -735,6 +832,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                   const my = (fromNode.y + toNode.y) / 2;
                   return (
                     <text
+                      className="mindmap-edge-label"
                       x={mx} y={my - 6}
                       textAnchor="middle"
                       fontSize={11}
@@ -811,6 +909,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                 {/* Edge from parent to floating dragged node */}
                 {parentNode && (
                   <path
+                    className="mindmap-floating-edge"
                     d={computeEdgePath(
                       parentNode.x, parentNode.y, parentNode.width,
                       floatingPos.x, floatingPos.y, rootNode.width,
@@ -823,12 +922,13 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                     style={{ pointerEvents: 'none' }}
                   />
                 )}
-                <g transform={`translate(${dx}, ${dy})`} style={{ pointerEvents: 'none' }}>
+                <g className="mindmap-floating" transform={`translate(${dx}, ${dy})`} style={{ pointerEvents: 'none' }}>
                 {/* Floating edges within subtree */}
                 {edges
                   .filter((e) => floatingSubtreeIds.has(e.fromId) && floatingSubtreeIds.has(e.toId))
                   .map((edge) => (
                     <path
+                      className="mindmap-floating-edge"
                       key={`fl-${edge.key}`}
                       d={edge.path}
                       stroke={edge.color}
@@ -869,7 +969,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
           {/* Plugin overlay layer (cross-link arrows, etc.) */}
           {plugins && runRenderOverlay(plugins, nodes, edges, activeTheme).map((el, i) => (
-            <g key={`plugin-overlay-${i}`}>{el}</g>
+            <g className="mindmap-plugin-overlay" key={`plugin-overlay-${i}`}>{el}</g>
           ))}
         </g>
       </svg>

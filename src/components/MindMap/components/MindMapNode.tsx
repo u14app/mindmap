@@ -81,31 +81,45 @@ function renderTokenTspan(
   switch (token.type) {
     case "bold":
       return (
-        <tspan key={key} fontWeight={700}>
+        <tspan key={key} className="mindmap-text-bold" fontWeight={700}>
           {token.content}
         </tspan>
       );
     case "italic":
       return (
-        <tspan key={key} fontStyle="italic">
+        <tspan key={key} className="mindmap-text-italic" fontStyle="italic">
           {token.content}
         </tspan>
       );
     case "strikethrough":
       return (
-        <tspan key={key} textDecoration="line-through" opacity={0.6}>
+        <tspan
+          key={key}
+          className="mindmap-text-strikethrough"
+          textDecoration="line-through"
+          opacity={0.6}
+        >
           {token.content}
         </tspan>
       );
     case "code":
       return (
-        <tspan key={key} fontFamily={MONO_FONT} fontSize="0.88em">
+        <tspan
+          key={key}
+          className="mindmap-text-code"
+          fontFamily={MONO_FONT}
+          fontSize="0.88em"
+        >
           {token.content}
         </tspan>
       );
     case "highlight":
       return (
-        <tspan key={key} fill={highlightTextColor || "#B8860B"}>
+        <tspan
+          key={key}
+          className="mindmap-text-highlight"
+          fill={highlightTextColor || "#FFEB3B"}
+        >
           {token.content}
         </tspan>
       );
@@ -113,6 +127,7 @@ function renderTokenTspan(
       return (
         <a
           key={key}
+          className="mindmap-text-link"
           href={token.url}
           target="_blank"
           rel="noopener noreferrer"
@@ -126,7 +141,7 @@ function renderTokenTspan(
       );
     case "image":
       return (
-        <tspan key={key} fontStyle="italic">
+        <tspan key={key} className="mindmap-text-image" fontStyle="italic">
           [{token.alt || "image"}]
         </tspan>
       );
@@ -136,6 +151,7 @@ function renderTokenTspan(
       return (
         <tspan
           key={key}
+          className="mindmap-text-latex"
           fontFamily={MONO_FONT}
           fontStyle="italic"
           fontSize="0.9em"
@@ -145,7 +161,11 @@ function renderTokenTspan(
       );
     case "text":
     default:
-      return <tspan key={key}>{token.content}</tspan>;
+      return (
+        <tspan key={key} className="mindmap-text-plain">
+          {token.content}
+        </tspan>
+      );
   }
 }
 
@@ -182,7 +202,7 @@ function TaskStatusSvgIcon({ status, size }: { status: string; size: number }) {
           height={size}
           rx={size * 0.2}
           fill="none"
-          stroke="#F59E0B"
+          stroke="#FBBF24"
           strokeWidth={size * 0.1}
         />
         <rect
@@ -191,7 +211,7 @@ function TaskStatusSvgIcon({ status, size }: { status: string; size: number }) {
           width={size * 0.5}
           height={size * 0.5}
           rx={size * 0.1}
-          fill="#F59E0B"
+          fill="#FBBF24"
           opacity={0.6}
         />
       </g>
@@ -293,10 +313,13 @@ function SvgNodeContent({
   const multiLineStartY = fontSize / 2 + 8;
 
   return (
-    <g>
+    <g className="mindmap-node-content">
       {/* Task status icon */}
       {node.taskStatus && (
-        <g transform={`translate(${startX}, ${-iconSize / 2})`}>
+        <g
+          className={`mindmap-task-icon mindmap-task-${node.taskStatus}`}
+          transform={`translate(${startX}, ${-iconSize / 2})`}
+        >
           <TaskStatusSvgIcon status={node.taskStatus} size={iconSize} />
         </g>
       )}
@@ -306,6 +329,7 @@ function SvgNodeContent({
         if (layout.token.type === "code") {
           return (
             <rect
+              className="mindmap-code-bg"
               key={`bg-${i}`}
               x={textStartX + layout.x - 2}
               y={bgRectY}
@@ -319,6 +343,7 @@ function SvgNodeContent({
         if (layout.token.type === "highlight") {
           return (
             <rect
+              className="mindmap-highlight-bg"
               key={`bg-${i}`}
               x={textStartX + layout.x - 1}
               y={bgRectY}
@@ -334,6 +359,7 @@ function SvgNodeContent({
 
       {/* Text element with tspan segments */}
       <text
+        className="mindmap-node-text"
         textAnchor="start"
         dominantBaseline="central"
         x={textStartX}
@@ -365,6 +391,7 @@ function SvgNodeContent({
           const foHeight = fontSize * 2;
           return (
             <foreignObject
+              className="mindmap-latex"
               key={`latex-fo-${i}`}
               x={tokenCenterX - foWidth / 2}
               y={-foHeight / 2}
@@ -392,21 +419,29 @@ function SvgNodeContent({
         multiLineContent.map((line, i) => {
           const mlFontSize = fontSize * 0.85;
           const mlTokens = parseInlineMarkdown(line, plugins);
-          const mlLayouts = computeTokenLayouts(mlTokens, mlFontSize, 400, fontFamily);
-          const mlWidth = mlLayouts.length > 0
-            ? mlLayouts[mlLayouts.length - 1].x + mlLayouts[mlLayouts.length - 1].width
-            : 0;
+          const mlLayouts = computeTokenLayouts(
+            mlTokens,
+            mlFontSize,
+            400,
+            fontFamily,
+          );
+          const mlWidth =
+            mlLayouts.length > 0
+              ? mlLayouts[mlLayouts.length - 1].x +
+                mlLayouts[mlLayouts.length - 1].width
+              : 0;
           const mlStartX = -mlWidth / 2;
           const mlY = multiLineStartY + i * lineHeight;
           const mlBgRectY = mlY - mlFontSize / 2 - 2;
           const mlBgRectH = mlFontSize + 4;
           return (
-            <g key={`ml-${i}`}>
+            <g className="mindmap-multiline" key={`ml-${i}`}>
               {/* Background rects for code/highlight tokens in multi-line */}
               {mlLayouts.map((layout, j) => {
                 if (layout.token.type === "code") {
                   return (
                     <rect
+                      className="mindmap-code-bg"
                       key={`ml-bg-${j}`}
                       x={mlStartX + layout.x - 2}
                       y={mlBgRectY}
@@ -420,6 +455,7 @@ function SvgNodeContent({
                 if (layout.token.type === "highlight") {
                   return (
                     <rect
+                      className="mindmap-highlight-bg"
                       key={`ml-bg-${j}`}
                       x={mlStartX + layout.x - 1}
                       y={mlBgRectY}
@@ -433,6 +469,7 @@ function SvgNodeContent({
                 return null;
               })}
               <text
+                className="mindmap-multiline-text"
                 x={mlStartX}
                 y={mlY}
                 textAnchor="start"
@@ -451,7 +488,10 @@ function SvgNodeContent({
               {katexReady &&
                 mlLayouts.map((layout, j) => {
                   const { token } = layout;
-                  if (token.type !== "latex-inline" && token.type !== "latex-block")
+                  if (
+                    token.type !== "latex-inline" &&
+                    token.type !== "latex-block"
+                  )
                     return null;
                   const html = renderLatexToHtml(
                     token.content,
@@ -464,6 +504,7 @@ function SvgNodeContent({
                   const mlFoHeight = mlFontSize * 2;
                   return (
                     <foreignObject
+                      className="mindmap-latex"
                       key={`ml-latex-fo-${i}-${j}`}
                       x={mlTokenCenterX - mlFoWidth / 2}
                       y={mlY - mlFoHeight / 2}
@@ -513,8 +554,9 @@ function SvgNodeContent({
             ];
             const color = colors[i % colors.length];
             return (
-              <g key={`tag-${i}`}>
+              <g className="mindmap-tag" key={`tag-${i}`}>
                 <rect
+                  className="mindmap-tag-bg"
                   x={x}
                   y={tagY}
                   width={tagWidth}
@@ -524,6 +566,7 @@ function SvgNodeContent({
                   opacity={0.15}
                 />
                 <text
+                  className="mindmap-tag-text"
                   x={x + tagWidth / 2}
                   y={tagY + (tagFontSize + 6) / 2}
                   textAnchor="middle"
@@ -542,6 +585,7 @@ function SvgNodeContent({
       {/* Remark indicator */}
       {node.remark && (
         <text
+          className="mindmap-remark-indicator"
           x={textStartX + textContentWidth + remarkGap}
           textAnchor="start"
           dominantBaseline="central"
@@ -592,7 +636,10 @@ export function MindMapNode({
   const displayEditText = isPendingEdit && !isEditing ? "" : editText;
   const newClass = isNew ? "mindmap-node-new" : "";
   const expandClass = expandDelay !== undefined ? "mindmap-node-expanding" : "";
-  const expandStyle = expandDelay !== undefined ? { animationDelay: `${expandDelay}ms` } : undefined;
+  const expandStyle =
+    expandDelay !== undefined
+      ? { animationDelay: `${expandDelay}ms` }
+      : undefined;
 
   const taskPrefix =
     node.taskStatus === "done"
@@ -616,13 +663,18 @@ export function MindMapNode({
       <g
         key={node.id}
         transform={`translate(${nx}, ${ny})`}
-        className={`mindmap-node-g ${animClass} ${newClass} ${expandClass}`}
+        className={`mindmap-node-g mindmap-node-root ${animClass} ${newClass} ${expandClass}`}
         onMouseDown={(e) => onMouseDown(e, node.id)}
         onClick={(e) => onClick(e, node.id)}
         onDoubleClick={(e) => onDoubleClick(e, node.id, rawEditText)}
-        style={{ cursor: "pointer", opacity: isGhost ? 0.3 : 1, ...expandStyle }}
+        style={{
+          cursor: "pointer",
+          opacity: isGhost ? 0.3 : 1,
+          ...expandStyle,
+        }}
       >
         <rect
+          className="mindmap-node-bg"
           x={-node.width / 2}
           y={-node.height / 2}
           width={node.width}
@@ -665,6 +717,8 @@ export function MindMapNode({
             textColor={theme.root.textColor}
             onRemarkHover={onRemarkHover}
             plugins={plugins}
+            highlightTextColor={theme.highlight.textColor}
+            highlightBgColor={theme.highlight.bgColor}
           />
         )}
         {/* Plugin decorations */}
@@ -770,7 +824,7 @@ export function MindMapNode({
     <g
       key={node.id}
       transform={`translate(${nx}, ${ny})`}
-      className={`mindmap-node-g ${animClass} ${newClass}`}
+      className={`mindmap-node-g mindmap-node-child ${animClass} ${newClass}`}
       onMouseDown={(e) => onMouseDown(e, node.id)}
       onClick={(e) => onClick(e, node.id)}
       onDoubleClick={(e) => onDoubleClick(e, node.id, rawEditText)}
@@ -778,6 +832,7 @@ export function MindMapNode({
     >
       {/* Invisible hit area */}
       <rect
+        className="mindmap-node-bg"
         x={-node.width / 2}
         y={-node.height / 2}
         width={node.width}
@@ -824,8 +879,11 @@ export function MindMapNode({
             textColor={theme.node.textColor}
             onRemarkHover={onRemarkHover}
             plugins={plugins}
+            highlightTextColor={theme.highlight.textColor}
+            highlightBgColor={theme.highlight.bgColor}
           />
           <line
+            className="mindmap-node-underline"
             x1={-textW / 2}
             y1={underlineY}
             x2={textW / 2}

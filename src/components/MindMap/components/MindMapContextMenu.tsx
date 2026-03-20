@@ -48,7 +48,7 @@ export function MindMapContextMenu({
       {!readonlyProp && (
         <>
           <div
-            className="mindmap-ctx-item"
+            className="mindmap-ctx-item mindmap-ctx-new-root"
             onClick={onNewRootNode}
             style={{ color: theme.contextMenu.textColor }}
           >
@@ -61,7 +61,7 @@ export function MindMapContextMenu({
         </>
       )}
       <div
-        className="mindmap-ctx-item mindmap-ctx-has-sub"
+        className="mindmap-ctx-item mindmap-ctx-has-sub mindmap-ctx-layout"
         onMouseEnter={() => setLayoutSubmenuOpen(true)}
         onMouseLeave={() => setLayoutSubmenuOpen(false)}
         style={{ color: theme.contextMenu.textColor }}
@@ -78,21 +78,21 @@ export function MindMapContextMenu({
             }}
           >
             <div
-              className="mindmap-ctx-item"
+              className="mindmap-ctx-item mindmap-ctx-layout-left"
               onClick={() => { onDirectionChange('left'); onClose() }}
               style={{ color: theme.contextMenu.textColor }}
             >
               {messages.layoutLeft}
             </div>
             <div
-              className="mindmap-ctx-item"
+              className="mindmap-ctx-item mindmap-ctx-layout-both"
               onClick={() => { onDirectionChange('both'); onClose() }}
               style={{ color: theme.contextMenu.textColor }}
             >
               {messages.layoutBoth}
             </div>
             <div
-              className="mindmap-ctx-item"
+              className="mindmap-ctx-item mindmap-ctx-layout-right"
               onClick={() => { onDirectionChange('right'); onClose() }}
               style={{ color: theme.contextMenu.textColor }}
             >
@@ -106,7 +106,7 @@ export function MindMapContextMenu({
         style={{ borderColor: theme.contextMenu.borderColor }}
       />
       <div
-        className="mindmap-ctx-item mindmap-ctx-has-sub"
+        className="mindmap-ctx-item mindmap-ctx-has-sub mindmap-ctx-export"
         onMouseEnter={() => setExportSubmenuOpen(true)}
         onMouseLeave={() => setExportSubmenuOpen(false)}
         style={{ color: theme.contextMenu.textColor }}
@@ -123,21 +123,21 @@ export function MindMapContextMenu({
             }}
           >
             <div
-              className="mindmap-ctx-item"
+              className="mindmap-ctx-item mindmap-ctx-export-svg"
               onClick={onExportSVG}
               style={{ color: theme.contextMenu.textColor }}
             >
               {messages.exportSVG}
             </div>
             <div
-              className="mindmap-ctx-item"
+              className="mindmap-ctx-item mindmap-ctx-export-png"
               onClick={onExportPNG}
               style={{ color: theme.contextMenu.textColor }}
             >
               {messages.exportPNG}
             </div>
             <div
-              className="mindmap-ctx-item"
+              className="mindmap-ctx-item mindmap-ctx-export-md"
               onClick={onExportMarkdown}
               style={{ color: theme.contextMenu.textColor }}
             >

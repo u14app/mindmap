@@ -187,7 +187,7 @@
   outline: none;
   resize: none;
   padding: 24px;
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
   font-size: 15px;
   line-height: 1.7;
   box-sizing: border-box;
@@ -214,7 +214,10 @@
   min-width: 150px;
   z-index: 1000;
   border: 1px solid;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .mindmap-ctx-item {
@@ -271,13 +274,20 @@
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   animation: mindmap-fade-in 0.15s ease-out;
 }
 
 @keyframes mindmap-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .mindmap-dialog-modal {
@@ -294,8 +304,14 @@
 }
 
 @keyframes mindmap-dialog-enter {
-  from { opacity: 0; transform: scale(0.95) translateY(8px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .mindmap-dialog-header {
@@ -323,7 +339,9 @@
   background: transparent;
   color: inherit;
   opacity: 0.5;
-  transition: opacity 0.15s, background 0.15s;
+  transition:
+    opacity 0.15s,
+    background 0.15s;
   flex-shrink: 0;
 }
 
@@ -403,7 +421,7 @@
 }
 
 .mindmap-node-content .mindmap-inline-code {
-  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 0.88em;
   background: rgba(128, 128, 128, 0.12);
   padding: 1px 4px;
@@ -411,14 +429,14 @@
 }
 
 .mindmap-node-content .mindmap-highlight {
-  background: rgba(255, 213, 79, 0.3);
-  color: #B8860B;
+  background: rgba(252, 211, 77, 0.2);
+  color: #fac800;
   padding: 1px 2px;
   border-radius: 2px;
 }
 
 .mindmap-node-content .mindmap-link {
-  color: #2563EB;
+  color: #2563eb;
   text-decoration: none;
   cursor: pointer;
 }
@@ -440,12 +458,12 @@
 }
 
 .mindmap-node-root-content .mindmap-highlight {
-  background: rgba(255, 213, 79, 0.25);
-  color: #FFD54F;
+  background: rgba(251, 191, 36, 0.2);
+  color: #fcd34d;
 }
 
 .mindmap-node-root-content .mindmap-link {
-  color: #93C5FD;
+  color: #93c5fd;
 }
 
 /* Task status icon */
@@ -482,5 +500,8 @@
   z-index: 1000;
   pointer-events: none;
   animation: mindmap-fade-in 0.15s ease-out;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
 }

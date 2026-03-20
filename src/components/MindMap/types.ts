@@ -63,6 +63,16 @@ export interface Edge {
   isCrossLink?: boolean
 }
 
+export type MindMapEvent =
+  | { type: 'nodeAdd'; node: MindMapData; parentId: string | null }
+  | { type: 'nodeDelete'; nodeId: string }
+  | { type: 'nodeTextChange'; nodeId: string; oldText: string; newText: string }
+  | { type: 'nodeSelect'; nodeId: string | null }
+  | { type: 'modeChange'; mode: 'view' | 'text' }
+  | { type: 'directionChange'; direction: LayoutDirection }
+  | { type: 'zoomChange'; zoom: number }
+  | { type: 'fullscreenChange'; fullscreen: boolean }
+
 export interface MindMapProps {
   data?: MindMapData | MindMapData[]
   markdown?: string
@@ -73,6 +83,7 @@ export interface MindMapProps {
   readonly?: boolean
   toolbar?: boolean | ToolbarConfig
   onDataChange?: (data: MindMapData[]) => void
+  onEvent?: (event: MindMapEvent) => void
   plugins?: import('./plugins/types').MindMapPlugin[]
 }
 

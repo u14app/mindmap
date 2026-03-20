@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react'
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import type { LayoutNode } from '../types'
 
 export function usePanZoom(
@@ -91,10 +91,12 @@ export function usePanZoom(
     }
   }, [svgRef, nodes])
 
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
+  // Register wheel handler with { passive: false } to allow preventDefault
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    const handleWheel = (e: WheelEvent) => {
       e.preventDefault()
-      const svg = svgRef.current!
       const rect = svg.getBoundingClientRect()
       const mouseX = e.clientX - rect.left
       const mouseY = e.clientY - rect.top
@@ -107,9 +109,10 @@ export function usePanZoom(
         y: mouseY - (mouseY - panRef.current.y) * (newZoom / zoomRef.current),
       })
       setZoom(newZoom)
-    },
-    [svgRef],
-  )
+    }
+    svg.addEventListener('wheel', handleWheel, { passive: false })
+    return () => svg.removeEventListener('wheel', handleWheel)
+  }, [svgRef])
 
   const zoomIn = useCallback(() => {
     const newZ = Math.min(zoomRef.current * 1.2, 5)
@@ -155,7 +158,7 @@ export function usePanZoom(
 
   return {
     pan, setPan, zoom, setZoom,
-    animateTo, autoFit, handleWheel, zoomIn, zoomOut,
+    animateTo, autoFit, zoomIn, zoomOut,
     contentCenter, panToNode,
   }
 }

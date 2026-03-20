@@ -44,7 +44,7 @@ export function MindMapControls({
           }}
         >
           <button
-            className="mindmap-ctrl-btn"
+            className="mindmap-ctrl-btn mindmap-ctrl-zoom-out"
             onClick={onZoomOut}
             title={messages.zoomOut}
             style={{ color: theme.controls.textColor }}
@@ -60,7 +60,7 @@ export function MindMapControls({
             {Math.round(zoom * 100)}%
           </button>
           <button
-            className="mindmap-ctrl-btn"
+            className="mindmap-ctrl-btn mindmap-ctrl-zoom-in"
             onClick={onZoomIn}
             title={messages.zoomIn}
             style={{ color: theme.controls.textColor }}
@@ -79,7 +79,7 @@ export function MindMapControls({
         }}
       >
         <button
-          className="mindmap-ctrl-btn"
+          className="mindmap-ctrl-btn mindmap-ctrl-mode"
           onClick={onModeToggle}
           title={mode === 'view' ? messages.textMode : messages.viewMode}
           style={{ color: theme.controls.textColor }}
@@ -98,7 +98,7 @@ export function MindMapControls({
           )}
         </button>
         <button
-          className="mindmap-ctrl-btn"
+          className="mindmap-ctrl-btn mindmap-ctrl-fullscreen"
           onClick={onFullscreenToggle}
           title={isFullscreen ? messages.exitFullscreen : messages.fullscreen}
           style={{ color: theme.controls.textColor }}

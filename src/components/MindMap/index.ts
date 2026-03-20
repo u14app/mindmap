@@ -1,5 +1,5 @@
 export { MindMap } from './MindMap'
-export type { MindMapData, MindMapProps, MindMapRef, LayoutDirection, ThemeMode, ToolbarConfig, TaskStatus, CrossLink } from './types'
+export type { MindMapData, MindMapProps, MindMapRef, MindMapEvent, LayoutDirection, ThemeMode, ToolbarConfig, TaskStatus, CrossLink } from './types'
 export type { MindMapMessages } from './utils/i18n'
 export { resolveMessages, detectLocale } from './utils/i18n'
 export { buildExportSVG, buildExportSVGForPNG, exportToPNG } from './utils/export'

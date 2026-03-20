@@ -96,8 +96,8 @@ function App() {
             color: "#333",
           }}
         >
-          <option value="basic">基础语法示例</option>
-          <option value="advanced">高级语法示例</option>
+          <option value="basic">Basic Syntax</option>
+          <option value="advanced">Advanced Syntax</option>
         </select>
       </div>
 
