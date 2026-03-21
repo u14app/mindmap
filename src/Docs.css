@@ -1,0 +1,207 @@
+/* ===== Docs Page Styles ===== */
+
+/* Section anchor offset for fixed navbar */
+.docs-section {
+  scroll-margin-top: 80px;
+}
+
+/* Sidebar */
+.docs-sidebar {
+  width: 260px;
+  min-width: 260px;
+}
+
+.docs-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.docs-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.docs-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #c1c6d7;
+  border-radius: 2px;
+}
+
+/* Sidebar link active state */
+.docs-sidebar-link {
+  transition: all 0.15s ease;
+}
+.docs-sidebar-link.active {
+  color: #007aff;
+  background: rgba(0, 122, 255, 0.05);
+  border-left-color: #007aff;
+}
+
+/* Mobile sidebar overlay */
+.docs-overlay {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition: opacity 0.2s ease;
+}
+
+.docs-drawer {
+  transition: transform 0.25s ease;
+}
+
+/* Code blocks */
+.docs-code-block {
+  position: relative;
+}
+.docs-code-block pre {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.docs-code-block pre::-webkit-scrollbar {
+  height: 4px;
+}
+.docs-code-block pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+.docs-code-block pre::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 2px;
+}
+
+/* Copy button */
+.docs-copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    background 0.15s ease;
+  background: rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  border-radius: 6px;
+  padding: 6px;
+}
+.docs-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.docs-copy-btn > span {
+  display: block;
+}
+.docs-code-block:hover .docs-copy-btn {
+  opacity: 1;
+}
+
+/* Tables */
+.docs-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.docs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.docs-table th {
+  text-align: left;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid #e2e8f0;
+  color: #1e293b;
+  white-space: nowrap;
+}
+.docs-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #475569;
+  vertical-align: top;
+}
+.docs-table tbody tr:hover {
+  background: rgba(0, 122, 255, 0.02);
+}
+.docs-table code {
+  font-size: 12px;
+  padding: 2px 6px;
+  background: transparent;
+  border-radius: 4px;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+/* Inline code in docs content (exclude code blocks) */
+.docs-page code {
+  background: transparent;
+  color: #0f172a;
+  padding: 0;
+}
+
+/* Syntax highlight tokens (oneDark palette for dark code blocks) */
+.docs-code-block code {
+  display: block;
+  color: #cbd5e1;
+}
+.hl-kw {
+  color: #c678dd;
+}
+.hl-str {
+  color: #98c379;
+}
+.hl-fn {
+  color: #61afef;
+}
+.hl-num {
+  color: #d19a66;
+}
+.hl-cmt {
+  color: #7f848e;
+}
+.hl-op {
+  color: #56b6c2;
+}
+.hl-tag {
+  color: #e06c75;
+}
+.hl-attr {
+  color: #d19a66;
+}
+
+/* Back to top button */
+.docs-back-to-top {
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+.docs-back-to-top:hover {
+  transform: scale(1.1);
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .docs-sidebar-link.active {
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.08);
+    border-left-color: #60a5fa;
+  }
+
+  .docs-table th {
+    border-bottom-color: #334155;
+    color: #f1f5f9;
+  }
+  .docs-table td {
+    border-bottom-color: #1e293b;
+    color: #94a3b8;
+  }
+  .docs-table tbody tr:hover {
+    background: rgba(96, 165, 250, 0.04);
+  }
+  .docs-table code {
+    background: transparent;
+    color: #e2e8f0;
+  }
+
+  .docs-page code {
+    color: #e2e8f0;
+  }
+
+  .docs-sidebar-scroll::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+}
