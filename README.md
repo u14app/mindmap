@@ -2,22 +2,24 @@
 
 # Open MindMap
 
+[![npm version](https://img.shields.io/npm/v/@xiangfa/mindmap)](https://www.npmjs.com/package/@xiangfa/mindmap)
+[![npm downloads](https://img.shields.io/npm/dm/@xiangfa/mindmap)](https://www.npmjs.com/package/@xiangfa/mindmap)
+[![license](https://img.shields.io/npm/l/@xiangfa/mindmap)](./LICENSE)
+[![react](https://img.shields.io/badge/react-%E2%89%A518-blue)](https://react.dev)
+
 A beautiful, interactive mind map component for React.
 
 **Natively supports AI stream output** with Markdown list syntax and **iOS-style UI**.
 
 Zero dependencies. SVG-based. Keyboard-first. Dark mode ready.
 
-[![npm version](https://img.shields.io/npm/v/@xiangfa/mindmap.svg?style=flat-square)](https://www.npmjs.com/package/@xiangfa/mindmap)
-[![npm downloads](https://img.shields.io/npm/dm/@xiangfa/mindmap.svg?style=flat-square)](https://www.npmjs.com/package/@xiangfa/mindmap)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/@xiangfa/mindmap?style=flat-square)](https://bundlephobia.com/package/@xiangfa/mindmap)
-[![license](https://img.shields.io/github/license/u14app/mindmap?style=flat-square)](https://github.com/u14app/mindmap/blob/main/LICENSE)
-
 English | [中文](README.zh-CN.md)
 
 </div>
 
 ---
+
+![Open MindMap](/public/screenshot.png)
 
 ## Features
 
@@ -597,4 +599,4 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 
 ## License
 
-[MIT](LICENSE)
+[Apache-2.0](LICENSE)

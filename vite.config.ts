@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [react()],
   ...(mode === "lib"
     ? {
+        publicDir: false,
         build: {
           lib: {
             entry: resolve(__dirname, "src/components/MindMap/index.ts"),

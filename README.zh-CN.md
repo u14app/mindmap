@@ -2,22 +2,24 @@
 
 # Open MindMap
 
+[![npm version](https://img.shields.io/npm/v/@xiangfa/mindmap)](https://www.npmjs.com/package/@xiangfa/mindmap)
+[![npm downloads](https://img.shields.io/npm/dm/@xiangfa/mindmap)](https://www.npmjs.com/package/@xiangfa/mindmap)
+[![license](https://img.shields.io/npm/l/@xiangfa/mindmap)](./LICENSE)
+[![react](https://img.shields.io/badge/react-%E2%89%A518-blue)](https://react.dev)
+
 一个精美的 React 交互式思维导图组件。
 
 **原生支持 AI 流式输出**，使用 Markdown 列表语法，搭配 **iOS 风格 UI**。
 
 零依赖。基于 SVG。键盘优先。支持暗色模式。
 
-[![npm version](https://img.shields.io/npm/v/@xiangfa/mindmap.svg?style=flat-square)](https://www.npmjs.com/package/@xiangfa/mindmap)
-[![npm downloads](https://img.shields.io/npm/dm/@xiangfa/mindmap.svg?style=flat-square)](https://www.npmjs.com/package/@xiangfa/mindmap)
-[![bundle size](https://img.shields.io/bundlephobia/minzip/@xiangfa/mindmap?style=flat-square)](https://bundlephobia.com/package/@xiangfa/mindmap)
-[![license](https://img.shields.io/github/license/u14app/mindmap?style=flat-square)](https://github.com/u14app/mindmap/blob/main/LICENSE)
-
 [English](README.md) | 中文
 
 </div>
 
 ---
+
+![Open MindMap](/public/screenshot.png)
 
 ## 特性
 
@@ -597,4 +599,4 @@ pnpm lint       # 运行代码检查
 
 ## 许可证
 
-[MIT](LICENSE)
+[Apache-2.0](LICENSE)

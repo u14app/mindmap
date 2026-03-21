@@ -5,7 +5,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { MindMap } from "../components/MindMap";
+import { MindMap, allPlugins } from "../components/MindMap";
 import type { MindMapRef } from "../components/MindMap";
 import "../App.css";
 
@@ -350,7 +350,7 @@ function LandingPage() {
             <span className="material-symbols-outlined text-[14px]">
               terminal
             </span>
-            v0.3.0 &middot; Open Source
+            v0.4.0 &middot; Open Source
           </div>
 
           <h1 className="hero-animate text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-6 md:mb-8 text-gradient leading-tight">
@@ -472,7 +472,12 @@ function LandingPage() {
               <div className="lg:col-span-8 bg-white relative overflow-hidden min-h-[400px] lg:min-h-0">
                 <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40" />
                 <div className="demo-mindmap-container relative">
-                  <MindMap ref={mindMapRef} markdown={markdown} theme="light" />
+                  <MindMap
+                    ref={mindMapRef}
+                    markdown={markdown}
+                    plugins={allPlugins}
+                    theme="light"
+                  />
                 </div>
               </div>
             </div>
