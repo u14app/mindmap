@@ -409,6 +409,9 @@ export function parseMarkdownMultiRoot(md: string, plugins?: MindMapPlugin[]): M
     processedMd = runPreParseMarkdown(activePlugins, processedMd, ctx)
   }
 
+  // Remove empty lines — the mindmap syntax has no blank-line semantics
+  processedMd = processedMd.split('\n').filter(line => line.trim().length > 0).join('\n')
+
   // Split on blank lines (one or more empty lines)
   const blocks = processedMd.split(/\n[ \t]*\n/).filter((block) => block.trim())
   if (blocks.length === 0) {
@@ -479,6 +482,9 @@ export function parseMarkdownWithFrontMatter(
 ): { roots: MindMapData[]; frontMatter: Record<string, string> } {
   const ctx = { lines: [] as string[], frontMatter: {} as Record<string, string> }
   let processedMd = runPreParseMarkdown(plugins, md, ctx)
+
+  // Remove empty lines — the mindmap syntax has no blank-line semantics
+  processedMd = processedMd.split('\n').filter(line => line.trim().length > 0).join('\n')
 
   const blockPlugins = plugins.map(p => ({
     ...p,

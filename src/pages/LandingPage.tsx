@@ -33,36 +33,6 @@ const DEFAULT_MARKDOWN = `Open MindMap
   - Knowledge Base
   - Brainstorming`;
 
-const SYSTEM_PROMPT = `You are a mind map generator. Given a topic, generate a mind map using markdown list syntax.
-
-Rules:
-- First line is the root node (no dash prefix)
-- Use "- " for child nodes, indent with 2 spaces for deeper levels
-- Use "> " after a node for remarks/notes
-- Use "- [ ] " for todo items, "- [x] " for done items, "- [-] " for in-progress
-- Use **bold**, *italic*, \`code\`, ~~strikethrough~~, ==highlight== for inline formatting
-- Generate 3-5 main branches with 2-4 children each
-- Keep node text concise (2-6 words per node)
-- Output ONLY the markdown, no explanation or code fences
-
-Example:
-Web Development
-- **Frontend**
-  > User-facing technologies
-  - [x] HTML & CSS
-  - [-] JavaScript
-  - [ ] TypeScript
-- *Backend*
-  - Node.js
-  - Python
-  - Database
-    - SQL
-    - NoSQL
-- DevOps
-  - CI/CD
-  - Docker
-  - Cloud Services`;
-
 // ---------------------------------------------------------------------------
 // Syntax Highlighting Helper
 // ---------------------------------------------------------------------------
@@ -254,35 +224,12 @@ function LandingPage() {
   const handleAIGenerate = useCallback(async () => {
     if (!aiPrompt.trim() || isGenerating) return;
 
-    const baseUrl = import.meta.env.VITE_OPENAI_BASE_URL;
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    const model = import.meta.env.VITE_OPENAI_MODEL;
-
-    if (!baseUrl || !apiKey || !model) {
-      console.warn(
-        "AI generation requires VITE_OPENAI_BASE_URL, VITE_OPENAI_API_KEY, and VITE_OPENAI_MODEL env vars.",
-      );
-      return;
-    }
-
     setIsGenerating(true);
 
     try {
-      const response = await fetch(`${baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            { role: "user", content: aiPrompt },
-          ],
-          stream: true,
-        }),
-      });
+      const response = await fetch(
+        `https://open-mindmap-ai.u14.app/api/mindmap?text=${encodeURIComponent(aiPrompt)}`,
+      );
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
@@ -297,28 +244,12 @@ function LandingPage() {
         if (done) break;
 
         const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk
-          .split("\n")
-          .filter((line) => line.startsWith("data: "));
-
-        for (const line of lines) {
-          const data = line.slice(6);
-          if (data === "[DONE]") break;
-          try {
-            const parsed = JSON.parse(data);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              accumulated += content;
-              const clean = accumulated
-                .replace(/^```(?:markdown)?\n?/, "")
-                .replace(/\n?```$/, "");
-              mindMapRef.current?.setMarkdown(clean);
-              setMarkdown(clean);
-            }
-          } catch {
-            // skip malformed chunks
-          }
-        }
+        accumulated += chunk;
+        const clean = accumulated
+          .replace(/^```(?:markdown)?\n?/, "")
+          .replace(/\n?```$/, "");
+        mindMapRef.current?.setMarkdown(clean);
+        setMarkdown(clean);
       }
 
       // Final cleanup
@@ -537,12 +468,7 @@ function LandingPage() {
               <div className="lg:col-span-8 bg-white relative overflow-hidden min-h-[400px] lg:min-h-0">
                 <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40" />
                 <div className="demo-mindmap-container relative">
-                  <MindMap
-                    ref={mindMapRef}
-                    markdown={markdown}
-                    readonly
-                    theme="light"
-                  />
+                  <MindMap ref={mindMapRef} markdown={markdown} theme="light" />
                 </div>
               </div>
             </div>
