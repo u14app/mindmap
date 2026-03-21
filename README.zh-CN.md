@@ -22,6 +22,7 @@
 ## 特性
 
 - **AI 流式输出** — 原生支持 AI 流式输出；输入 Markdown 列表，实时生成思维导图
+- **内置 AI 生成** — 连接任意 OpenAI 兼容 API，通过自然语言生成思维导图；支持文本、图片和 PDF 附件上传
 - **纯 SVG 渲染** — 无 Canvas、无外部布局引擎，任意缩放级别下都清晰锐利
 - **iOS 风格 UI** — 毛玻璃控件、圆角设计、流畅动画，简洁精致
 - **插件系统** — 7 个内置插件扩展语法（虚线、折叠、多行、标签、跨链接、LaTeX、frontmatter）；完全可扩展
@@ -237,6 +238,48 @@ function App() {
 }
 ```
 
+### AI 生成
+
+添加内置 AI 输入栏，通过自然语言生成思维导图。支持连接任意 OpenAI 兼容 API 并流式输出：
+
+```tsx
+<MindMap
+  ai={{
+    apiUrl: "https://api.openai.com/v1/chat/completions",
+    apiKey: "sk-...",
+    model: "gpt-5",
+  }}
+/>
+```
+
+启用附件上传（文本、图片、PDF）：
+
+```tsx
+<MindMap
+  ai={{
+    apiUrl: "https://api.openai.com/v1/chat/completions",
+    apiKey: "sk-...",
+    model: "gpt-5",
+    attachments: ["text", "image", "pdf"],
+  }}
+/>
+```
+
+自定义系统提示词：
+
+```tsx
+<MindMap
+  ai={{
+    apiUrl: "https://api.openai.com/v1/chat/completions",
+    apiKey: "sk-...",
+    model: "gpt-5",
+    systemPrompt: "根据给定的主题生成思维导图...",
+  }}
+/>
+```
+
+> **安全提示：** API 密钥会从浏览器发送。生产环境中建议使用代理端点来保护密钥安全。
+
 ### 监听变更
 
 ```tsx
@@ -405,6 +448,7 @@ theme: dark
 | `messages`         | `Partial<MindMapMessages>`      | -            | 覆盖任意 UI 文本字符串                               |
 | `readonly`         | `boolean`                       | `false`      | 仅显示模式（不可编辑、不可创建）                     |
 | `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | 显示/隐藏缩放控件                                    |
+| `ai`               | `MindMapAIConfig`               | -            | AI 生成配置（API 地址、密钥、模型、附件类型）        |
 | `plugins`          | `MindMapPlugin[]`               | `allPlugins` | 启用的扩展语法插件                                   |
 | `onDataChange`     | `(data: MindMapData[]) => void` | -            | 用户交互修改树时调用                                 |
 
@@ -415,6 +459,28 @@ interface ToolbarConfig {
   zoom?: boolean; // 显示缩放控件（默认：true）
 }
 ```
+
+### MindMapAIConfig
+
+```ts
+type AIAttachmentType = "text" | "image" | "pdf";
+
+interface MindMapAIConfig {
+  apiUrl: string; // OpenAI 兼容 API 端点
+  apiKey: string; // API 密钥（Bearer token）
+  model: string; // 模型名称（如 "gpt-5"）
+  systemPrompt?: string; // 自定义系统提示词（内置默认值）
+  attachments?: AIAttachmentType[]; // 允许的附件类型（默认：[]）
+}
+```
+
+| 字段           | 类型                 | 必填 | 说明                                                                                 |
+| -------------- | -------------------- | ---- | ------------------------------------------------------------------------------------ |
+| `apiUrl`       | `string`             | 是   | OpenAI 兼容的 chat completions 端点                                                  |
+| `apiKey`       | `string`             | 是   | API 密钥，作为 `Bearer` token 发送                                                   |
+| `model`        | `string`             | 是   | 模型标识符（如 `gpt-5`、`deepseek-chat`）                                            |
+| `systemPrompt` | `string`             | 否   | 覆盖内置的思维导图生成提示词                                                         |
+| `attachments`  | `AIAttachmentType[]` | 否   | 启用文件上传：`"text"`（text/\*）、`"image"`（image/\*）、`"pdf"`（application/pdf） |
 
 ### Ref 方法
 

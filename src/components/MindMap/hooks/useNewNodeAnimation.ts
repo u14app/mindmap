@@ -15,6 +15,7 @@ export function useNewNodeAnimation(nodes: LayoutNode[]): Set<string> {
         }
       }
       if (added.size > 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: detect new nodes and trigger animation
         setNewNodeIds(added)
         const timer = setTimeout(() => setNewNodeIds(new Set()), 350)
         prevNodeIdsRef.current = currentIds

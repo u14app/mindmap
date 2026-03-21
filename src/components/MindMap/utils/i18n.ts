@@ -22,6 +22,11 @@ export interface MindMapMessages {
   exportMarkdown: string
   layout: string
 
+  // AI
+  aiPlaceholder: string
+  aiGenerating: string
+  aiError: string
+
   // Shared
   close: string
 }
@@ -47,6 +52,10 @@ const zhCN: MindMapMessages = {
   exportMarkdown: '导出为 Markdown',
   layout: '布局',
 
+  aiPlaceholder: '让 AI 生成思维导图...',
+  aiGenerating: '生成中...',
+  aiError: '生成失败',
+
   close: '关闭',
 }
 
@@ -70,6 +79,10 @@ const enUS: MindMapMessages = {
   exportPNG: 'Export as PNG',
   exportMarkdown: 'Export as Markdown',
   layout: 'Layout',
+
+  aiPlaceholder: 'Ask AI to generate a mind map...',
+  aiGenerating: 'Generating...',
+  aiError: 'Generation failed',
 
   close: 'Close',
 }

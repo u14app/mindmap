@@ -73,6 +73,16 @@ export type MindMapEvent =
   | { type: 'zoomChange'; zoom: number }
   | { type: 'fullscreenChange'; fullscreen: boolean }
 
+export type AIAttachmentType = 'text' | 'image' | 'pdf'
+
+export interface MindMapAIConfig {
+  apiUrl: string
+  apiKey: string
+  model: string
+  systemPrompt?: string
+  attachments?: AIAttachmentType[]
+}
+
 export interface MindMapProps {
   data?: MindMapData | MindMapData[]
   markdown?: string
@@ -82,6 +92,7 @@ export interface MindMapProps {
   messages?: Partial<import('./utils/i18n').MindMapMessages>
   readonly?: boolean
   toolbar?: boolean | ToolbarConfig
+  ai?: MindMapAIConfig
   onDataChange?: (data: MindMapData[]) => void
   onEvent?: (event: MindMapEvent) => void
   plugins?: import('./plugins/types').MindMapPlugin[]

@@ -22,6 +22,7 @@ English | [中文](README.zh-CN.md)
 ## Features
 
 - **AI stream ready** — natively supports AI streaming output; feed a markdown list in, get a real-time mind map out
+- **Built-in AI generation** — connect any OpenAI-compatible API to generate mind maps from natural language; supports text, image, and PDF attachments
 - **Pure SVG rendering** — no canvas, no external layout engines, razor-sharp at any zoom level
 - **iOS-style UI** — frosted glass controls, rounded corners, smooth animations, clean and polished design
 - **Plugin system** — 7 built-in plugins for extended syntax (dotted lines, folding, multi-line, tags, cross-links, LaTeX, frontmatter); fully extensible
@@ -237,6 +238,48 @@ function App() {
 }
 ```
 
+### AI Generation
+
+Add a built-in AI input bar to generate mind maps from natural language. Connects to any OpenAI-compatible API with streaming support:
+
+```tsx
+<MindMap
+  ai={{
+    apiUrl: "https://api.openai.com/v1/chat/completions",
+    apiKey: "sk-...",
+    model: "gpt-5",
+  }}
+/>
+```
+
+Enable file attachments (text, image, PDF):
+
+```tsx
+<MindMap
+  ai={{
+    apiUrl: "https://api.openai.com/v1/chat/completions",
+    apiKey: "sk-...",
+    model: "gpt-5",
+    attachments: ["text", "image", "pdf"],
+  }}
+/>
+```
+
+Customize the system prompt:
+
+```tsx
+<MindMap
+  ai={{
+    apiUrl: "https://api.openai.com/v1/chat/completions",
+    apiKey: "sk-...",
+    model: "gpt-5",
+    systemPrompt: "Generate a mind map about the given topic...",
+  }}
+/>
+```
+
+> **Security Note:** The API key is sent from the browser. For production, use a proxy endpoint to keep your key server-side.
+
 ### Listening for Changes
 
 ```tsx
@@ -405,6 +448,7 @@ Render mathematical formulas (requires [KaTeX](https://katex.org/)):
 | `messages`         | `Partial<MindMapMessages>`      | -            | Override any UI text string                                               |
 | `readonly`         | `boolean`                       | `false`      | Display-only mode (no editing, no creating)                               |
 | `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | Show/hide zoom controls                                                   |
+| `ai`               | `MindMapAIConfig`               | -            | AI generation configuration (API endpoint, key, model, attachments)       |
 | `plugins`          | `MindMapPlugin[]`               | `allPlugins` | Plugins to enable for extended syntax                                     |
 | `onDataChange`     | `(data: MindMapData[]) => void` | -            | Called when the tree is modified by user interaction                      |
 
@@ -415,6 +459,28 @@ interface ToolbarConfig {
   zoom?: boolean; // show zoom controls (default: true)
 }
 ```
+
+### MindMapAIConfig
+
+```ts
+type AIAttachmentType = "text" | "image" | "pdf";
+
+interface MindMapAIConfig {
+  apiUrl: string; // OpenAI-compatible API endpoint
+  apiKey: string; // API key (Bearer token)
+  model: string; // Model name (e.g., "gpt-5")
+  systemPrompt?: string; // Custom system prompt (has a built-in default)
+  attachments?: AIAttachmentType[]; // Allowed attachment types (default: [])
+}
+```
+
+| Field          | Type                 | Required | Description                                                                              |
+| -------------- | -------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `apiUrl`       | `string`             | Yes      | OpenAI-compatible chat completions endpoint                                              |
+| `apiKey`       | `string`             | Yes      | API key sent as `Bearer` token                                                           |
+| `model`        | `string`             | Yes      | Model identifier (e.g., `gpt-5`, `deepseek-chat`)                                        |
+| `systemPrompt` | `string`             | No       | Override the built-in mind map generation prompt                                         |
+| `attachments`  | `AIAttachmentType[]` | No       | Enable file uploads: `"text"` (text/\*), `"image"` (image/\*), `"pdf"` (application/pdf) |
 
 ### Ref Methods
 

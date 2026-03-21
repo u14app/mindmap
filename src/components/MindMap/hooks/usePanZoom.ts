@@ -12,8 +12,10 @@ export function usePanZoom(
   // Keep refs in sync for stable callbacks
   const zoomRef = useRef(zoom)
   const panRef = useRef(pan)
-  zoomRef.current = zoom
-  panRef.current = pan
+  useEffect(() => {
+    zoomRef.current = zoom
+    panRef.current = pan
+  })
 
   // Content center for pinch-to-zoom centering
   const contentCenter = useMemo(() => {

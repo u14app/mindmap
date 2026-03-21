@@ -27,7 +27,7 @@ interface ParsedItem {
  * Returns the task status and the remaining text.
  */
 function extractTaskStatus(text: string): { taskStatus?: TaskStatus; text: string } {
-  const match = text.match(/^\[([ x\-])\]\s+(.*)/)
+  const match = text.match(/^\[([ x-])\]\s+(.*)/)
   if (!match) return { text }
   const flag = match[1]
   const rest = match[2]
@@ -51,14 +51,14 @@ export function parseMarkdownList(md: string, plugins?: MindMapPlugin[]): MindMa
   if (ctx) ctx.lines = lines
   const items: ParsedItem[] = []
   let bareRootText: string | null = null
-  let bareRootRemarkLines: string[] = []
+  const bareRootRemarkLines: string[] = []
 
   let i = 0
   while (i < lines.length) {
     const line = lines[i]
 
     // Step 2: Try plugin line matchers first
-    let pluginResult = activePlugins && ctx ? runParseLine(activePlugins, line, i, ctx) : null
+    const pluginResult = activePlugins && ctx ? runParseLine(activePlugins, line, i, ctx) : null
 
     if (pluginResult) {
       const rawText = pluginResult.text.trim()

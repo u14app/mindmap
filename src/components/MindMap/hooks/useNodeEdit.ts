@@ -13,7 +13,7 @@ interface UseNodeEditParams {
  * Returns the task status and remaining text.
  */
 function extractTaskStatus(text: string): { taskStatus?: TaskStatus; text: string } {
-  const match = text.match(/^\[([ x\-])\]\s+(.*)/)
+  const match = text.match(/^\[([ x-])\]\s+(.*)/)
   if (!match) return { text }
   const flag = match[1]
   const rest = match[2]
@@ -35,6 +35,7 @@ export function useNodeEdit({
   // Auto-edit newly created child
   useEffect(() => {
     if (pendingEditId && nodeMap[pendingEditId]) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: auto-focus newly created node
       setEditingId(pendingEditId)
       setEditText('')
       setPendingEditId(null)

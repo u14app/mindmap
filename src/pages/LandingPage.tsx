@@ -246,6 +246,8 @@ function LandingPage() {
         const chunk = decoder.decode(value, { stream: true });
         accumulated += chunk;
         const clean = accumulated
+          .replace(/<think>[\s\S]*?<\/think>/g, "")
+          .replace(/<think>[\s\S]*$/, "")
           .replace(/^```(?:markdown)?\n?/, "")
           .replace(/\n?```$/, "");
         mindMapRef.current?.setMarkdown(clean);
@@ -254,6 +256,8 @@ function LandingPage() {
 
       // Final cleanup
       const finalMarkdown = accumulated
+        .replace(/<think>[\s\S]*?<\/think>/g, "")
+        .replace(/<think>[\s\S]*$/, "")
         .replace(/^```(?:markdown)?\n?/, "")
         .replace(/\n?```$/, "");
       setMarkdown(finalMarkdown);
@@ -515,6 +519,12 @@ function LandingPage() {
                   </span>
                   OpenAI-Compatible API
                 </li>
+                <li className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                  <span className="material-symbols-outlined text-primary text-[20px]">
+                    check_circle
+                  </span>
+                  Built-in AI Input with File Attachments
+                </li>
               </ul>
             </div>
             <div className="flex-1 relative">
@@ -560,6 +570,11 @@ function LandingPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {[
+              {
+                icon: "smart_toy",
+                title: "AI Generation",
+                desc: "Built-in AI input bar with OpenAI-compatible streaming and file attachments.",
+              },
               {
                 icon: "image",
                 title: "Pure SVG Rendering",

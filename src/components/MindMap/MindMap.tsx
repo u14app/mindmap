@@ -37,6 +37,7 @@ import { MindMapNode } from "./components/MindMapNode";
 import { MindMapControls } from "./components/MindMapControls";
 import { MindMapContextMenu } from "./components/MindMapContextMenu";
 import { runRenderOverlay } from "./plugins/runner";
+import { MindMapAIInput } from "./components/MindMapAIInput";
 import "./MindMap.css";
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -60,6 +61,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     messages: messageOverrides,
     readonly: readonlyProp = false,
     toolbar = true,
+    ai,
     onDataChange,
     onEvent,
     plugins: pluginsProp,
@@ -690,6 +692,22 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     return () => window.removeEventListener("click", handleClick);
   }, [contextMenu, closeContextMenu]);
 
+  // --- AI generation callbacks ---
+  const handleAIMarkdownStream = useCallback((md: string) => {
+    if (plugins) {
+      setMapData(parseMarkdownWithFrontMatter(md, plugins).roots);
+    } else {
+      setMapData(parseMarkdownMultiRoot(md));
+    }
+    setSplitIndices({});
+  }, [plugins]);
+
+  const handleAIComplete = useCallback(() => {
+    setTimeout(() => handleAutoFit(), 100);
+  }, [handleAutoFit]);
+
+  const handleAIError = useCallback(() => {}, []);
+
   // --- Tab indent/dedent in text mode ---
   const handleTextKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key !== 'Tab') return
@@ -987,6 +1005,18 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         onModeToggle={handleModeToggle}
         onFullscreenToggle={handleFullscreenToggle}
       />
+
+      {ai && (
+        <MindMapAIInput
+          config={ai}
+          theme={activeTheme}
+          messages={t}
+          currentMarkdown={toMarkdownMultiRoot(mapData, plugins)}
+          onMarkdownStream={handleAIMarkdownStream}
+          onComplete={handleAIComplete}
+          onError={handleAIError}
+        />
+      )}
 
       {contextMenu && (
         <MindMapContextMenu
