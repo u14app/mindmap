@@ -162,6 +162,17 @@
 .hl-attr {
   color: #d19a66;
 }
+.hl-root {
+  color: #e5e7eb;
+  font-weight: 600;
+}
+.hl-italic {
+  color: #abb2bf;
+  font-style: italic;
+}
+.hl-task-pending {
+  color: #7f848e;
+}
 
 /* Back to top button */
 .docs-back-to-top {

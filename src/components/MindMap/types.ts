@@ -99,6 +99,7 @@ export interface MindMapProps {
   onDataChange?: (data: MindMapData[]) => void
   onEvent?: (event: MindMapEvent) => void
   plugins?: import('./plugins/types').MindMapPlugin[]
+  textEditor?: React.ComponentType<{ value: string; onChange: (text: string) => void; readOnly?: boolean }>
 }
 
 export interface MindMapRef {

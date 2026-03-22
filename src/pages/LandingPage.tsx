@@ -3,10 +3,10 @@ import {
   useRef,
   useEffect,
   useCallback,
-  type ReactNode,
 } from "react";
 import { MindMap, allPlugins } from "../components/MindMap";
 import type { MindMapRef } from "../components/MindMap";
+import { MindMapTextEditor } from "../components/MindMap/components/MindMapTextEditor";
 import { version } from "../../package.json";
 import "../App.css";
 
@@ -33,148 +33,6 @@ const DEFAULT_MARKDOWN = `Open MindMap
   - Project Planning
   - Knowledge Base
   - Brainstorming`;
-
-// ---------------------------------------------------------------------------
-// Syntax Highlighting Helper
-// ---------------------------------------------------------------------------
-
-function highlightSyntax(md: string): ReactNode[] {
-  return md.split("\n").map((line, i) => {
-    // Empty line
-    if (!line.trim()) return <div key={i} className="h-4" />;
-
-    // Root node (first non-empty line without dash prefix)
-    if (i === 0 && !line.trimStart().startsWith("-")) {
-      return (
-        <div key={i}>
-          <span className="text-slate-900 font-bold">{line}</span>
-        </div>
-      );
-    }
-
-    // Remark lines
-    if (line.trim().startsWith(">")) {
-      const indent = line.match(/^(\s*)/)?.[0] || "";
-      return (
-        <div key={i}>
-          <span className="text-slate-300">{indent}</span>
-          <span className="text-primary/50">{line.trim()}</span>
-        </div>
-      );
-    }
-
-    // Normal lines with dash prefix
-    const match = line.match(/^(\s*)([-+]\.?\s*)(.*)/);
-    if (match) {
-      const [, indent, marker, text] = match;
-
-      // Process inline formatting
-      let processedText: ReactNode = text;
-      const parts: ReactNode[] = [];
-      let remaining = text;
-      let keyIdx = 0;
-
-      // Task markers
-      const taskMatch = remaining.match(/^\[([ x-])\]\s*/);
-      if (taskMatch) {
-        const status = taskMatch[1];
-        const color =
-          status === "x"
-            ? "text-green-600"
-            : status === "-"
-              ? "text-amber-500"
-              : "text-slate-400";
-        parts.push(
-          <span key={keyIdx++} className={color}>
-            [{status}]{" "}
-          </span>,
-        );
-        remaining = remaining.slice(taskMatch[0].length);
-      }
-
-      // Simple inline formatting highlights
-      const inlineRegex =
-        /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|~~[^~]+~~|==[^=]+==#[a-zA-Z][\w-]*)/g;
-      let lastIndex = 0;
-      let inlineMatch;
-      while ((inlineMatch = inlineRegex.exec(remaining)) !== null) {
-        if (inlineMatch.index > lastIndex) {
-          parts.push(
-            <span key={keyIdx++} className="text-slate-600">
-              {remaining.slice(lastIndex, inlineMatch.index)}
-            </span>,
-          );
-        }
-        const token = inlineMatch[0];
-        if (token.startsWith("**")) {
-          parts.push(
-            <span key={keyIdx++} className="text-slate-800 font-semibold">
-              {token}
-            </span>,
-          );
-        } else if (token.startsWith("~~")) {
-          parts.push(
-            <span key={keyIdx++} className="text-slate-400 line-through">
-              {token}
-            </span>,
-          );
-        } else if (token.startsWith("`")) {
-          parts.push(
-            <span key={keyIdx++} className="text-rose-500">
-              {token}
-            </span>,
-          );
-        } else if (token.startsWith("==")) {
-          parts.push(
-            <span key={keyIdx++} className="text-amber-600">
-              {token}
-            </span>,
-          );
-        } else if (token.startsWith("#")) {
-          parts.push(
-            <span key={keyIdx++} className="text-slate-400">
-              {token}
-            </span>,
-          );
-        } else if (token.startsWith("*")) {
-          parts.push(
-            <span key={keyIdx++} className="text-slate-700 italic">
-              {token}
-            </span>,
-          );
-        }
-        lastIndex = inlineMatch.index + token.length;
-      }
-      if (lastIndex < remaining.length) {
-        parts.push(
-          <span key={keyIdx++} className="text-slate-600">
-            {remaining.slice(lastIndex)}
-          </span>,
-        );
-      }
-
-      if (parts.length === 0) {
-        processedText = <span className="text-slate-600">{text}</span>;
-      } else {
-        processedText = <>{parts}</>;
-      }
-
-      return (
-        <div key={i}>
-          <span className="text-slate-300">{indent}</span>
-          <span className="text-primary/40">{marker}</span>
-          {processedText}
-        </div>
-      );
-    }
-
-    return (
-      <div key={i}>
-        <span className="text-slate-600">{line}</span>
-      </div>
-    );
-  });
-}
 
 // ---------------------------------------------------------------------------
 // LandingPage Component
@@ -426,10 +284,15 @@ function LandingPage() {
                   </span>
                 </div>
 
-                <div className="p-4 md:p-6 font-mono text-[12px] md:text-[13px] leading-relaxed flex-grow overflow-auto editor-scroll max-h-[240px] lg:max-h-none">
-                  <pre className="whitespace-pre-wrap">
-                    {highlightSyntax(markdown)}
-                  </pre>
+                <div className="font-mono text-[12px] md:text-[13px] leading-relaxed flex-grow overflow-auto editor-scroll max-h-[240px] lg:max-h-none">
+                  <MindMapTextEditor
+                    value={markdown}
+                    onChange={(text) => {
+                      setMarkdown(text);
+                      mindMapRef.current?.setMarkdown(text);
+                    }}
+                    className="landing-text-editor"
+                  />
                 </div>
 
                 {/* AI Command Bar */}
@@ -625,6 +488,11 @@ function LandingPage() {
                 icon: "file_download",
                 title: "Export Anywhere",
                 desc: "SVG, high-DPI PNG, and Markdown export out of the box.",
+              },
+              {
+                icon: "edit_note",
+                title: "Text Editor",
+                desc: "Opt-in syntax-highlighted markdown editor. Toggle between visual and text modes.",
               },
             ].map((f) => (
               <div

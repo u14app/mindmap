@@ -10,6 +10,7 @@ export interface MindMapControlsProps {
   theme: ThemeColors
   messages: MindMapMessages
   showZoom?: boolean
+  showModeToggle?: boolean
   mode: 'view' | 'text'
   isFullscreen: boolean
   onZoomIn: () => void
@@ -23,6 +24,7 @@ export function MindMapControls({
   zoom,
   messages,
   showZoom = true,
+  showModeToggle = true,
   mode,
   isFullscreen,
   onZoomIn,
@@ -62,24 +64,26 @@ export function MindMapControls({
 
       {/* Extra controls - bottom right (mode & fullscreen) */}
       <div className="mindmap-extra-controls">
-        <button
-          className="mindmap-ctrl-btn mindmap-ctrl-mode"
-          onClick={onModeToggle}
-          title={mode === 'view' ? messages.textMode : messages.viewMode}
-        >
-          {mode === 'view' ? (
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 5h12" />
-              <path d="M4 12h10" />
-              <path d="M12 19h8" />
-            </svg>
-          ) : (
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          )}
-        </button>
+        {showModeToggle && (
+          <button
+            className="mindmap-ctrl-btn mindmap-ctrl-mode"
+            onClick={onModeToggle}
+            title={mode === 'view' ? messages.textMode : messages.viewMode}
+          >
+            {mode === 'view' ? (
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 5h12" />
+                <path d="M4 12h10" />
+                <path d="M12 19h8" />
+              </svg>
+            ) : (
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            )}
+          </button>
+        )}
         <button
           className="mindmap-ctrl-btn mindmap-ctrl-fullscreen"
           onClick={onFullscreenToggle}

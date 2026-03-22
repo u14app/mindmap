@@ -1,4 +1,6 @@
 export { MindMap } from './MindMap'
+export { MindMapTextEditor } from './components/MindMapTextEditor'
+export type { MindMapTextEditorProps } from './components/MindMapTextEditor'
 export type { MindMapData, MindMapProps, MindMapRef, MindMapEvent, LayoutDirection, ThemeMode, ToolbarConfig, TaskStatus, CrossLink, MindMapAIConfig, AIAttachmentType } from './types'
 export type { MindMapMessages } from './utils/i18n'
 export { resolveMessages, detectLocale } from './utils/i18n'

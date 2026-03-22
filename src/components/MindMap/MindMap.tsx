@@ -66,6 +66,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     onDataChange,
     onEvent,
     plugins: pluginsProp,
+    textEditor,
   },
   ref,
 ) {
@@ -463,6 +464,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
   // Mode toggle
   const handleModeToggle = useCallback(() => {
+    if (!textEditor) return;
     setMode((prev) => {
       if (prev === 'view') {
         // Entering text mode: serialize current data
@@ -480,7 +482,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         return 'view';
       }
     });
-  }, [mapData, textContent, updateData, plugins, emit]);
+  }, [textEditor, mapData, textContent, updateData, plugins, emit]);
 
   // Fullscreen toggle
   const handleFullscreenToggle = useCallback(() => {
@@ -709,79 +711,13 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
   const handleAIError = useCallback(() => {}, []);
 
-  // --- Tab indent/dedent in text mode ---
-  const handleTextKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key !== 'Tab') return
-    e.preventDefault()
-    const ta = e.currentTarget
-    const { selectionStart, selectionEnd, value } = ta
-    const indent = '  '
-
-    if (e.shiftKey) {
-      // Shift+Tab: dedent
-      const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1
-      if (selectionStart === selectionEnd) {
-        const lineText = value.slice(lineStart, selectionEnd)
-        const match = lineText.match(/^ {1,2}/)
-        if (!match) return
-        const removed = match[0].length
-        const newValue = value.slice(0, lineStart) + lineText.slice(removed) + value.slice(selectionEnd)
-        setTextContent(newValue)
-        requestAnimationFrame(() => {
-          ta.selectionStart = ta.selectionEnd = Math.max(lineStart, selectionStart - removed)
-        })
-      } else {
-        const block = value.slice(lineStart, selectionEnd)
-        const lines = block.split('\n')
-        let totalRemoved = 0
-        let firstRemoved = 0
-        const dedented = lines.map((line, i) => {
-          const m = line.match(/^ {1,2}/)
-          const r = m ? m[0].length : 0
-          totalRemoved += r
-          if (i === 0) firstRemoved = r
-          return line.slice(r)
-        }).join('\n')
-        setTextContent(value.slice(0, lineStart) + dedented + value.slice(selectionEnd))
-        requestAnimationFrame(() => {
-          ta.selectionStart = selectionStart - firstRemoved
-          ta.selectionEnd = selectionEnd - totalRemoved
-        })
-      }
-    } else {
-      // Tab: indent
-      if (selectionStart === selectionEnd) {
-        setTextContent(value.slice(0, selectionStart) + indent + value.slice(selectionEnd))
-        requestAnimationFrame(() => {
-          ta.selectionStart = ta.selectionEnd = selectionStart + 2
-        })
-      } else {
-        const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1
-        const block = value.slice(lineStart, selectionEnd)
-        const lines = block.split('\n')
-        const indented = lines.map(line => indent + line).join('\n')
-        setTextContent(value.slice(0, lineStart) + indented + value.slice(selectionEnd))
-        requestAnimationFrame(() => {
-          ta.selectionStart = selectionStart + 2
-          ta.selectionEnd = selectionEnd + lines.length * 2
-        })
-      }
-    }
-  }, [])
-
   // --- Render ---
   return (
     <div ref={containerRef} className="mindmap-container" style={generateCSSVariables(activeTheme) as React.CSSProperties}>
-      {mode === 'text' && (
-        <textarea
-          className="mindmap-text-editor"
-          value={textContent}
-          onChange={(e) => setTextContent(e.target.value)}
-          onKeyDown={handleTextKeyDown}
-          readOnly={readonlyProp}
-          style={readonlyProp ? { opacity: 0.7 } : undefined}
-        />
-      )}
+      {mode === 'text' && textEditor && (() => {
+        const TextEditor = textEditor;
+        return <TextEditor value={textContent} onChange={setTextContent} readOnly={readonlyProp} />;
+      })()}
       <svg
         ref={svgRef}
         className={`mindmap-svg ${draggingCanvas ? "dragging-canvas" : ""} ${floatingNodeId ? "dragging-node" : ""}`}
@@ -992,6 +928,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         theme={activeTheme}
         messages={t}
         showZoom={toolbarConfig.zoom}
+        showModeToggle={!!textEditor}
         mode={mode}
         isFullscreen={isFullscreen}
         onZoomIn={zoomIn}

@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import "../Docs.css";
+import { highlightMindmapHTML } from "../components/MindMap/utils/highlight";
 
 // ---------------------------------------------------------------------------
 // Section metadata
@@ -365,207 +366,6 @@ function highlightBash(code: string): ReactNode {
   });
 }
 
-function highlightMindmapInline(
-  text: string,
-  startKey: number,
-): [ReactNode[], number] {
-  const parts: ReactNode[] = [];
-  let k = startKey;
-  const re =
-    /(\*\*[^*]+\*\*|~~[^~]+~~|`[^`]+`|==[^=]+==#[a-zA-Z][\w-]*|\$\$[^$]+\$\$|\$[^$\n]+\$|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|->\.?\s*\{#[\w-]+\}(?:\s*"[^"]*")?\{#[\w-]+\}|\*(?!\*)[^*]+\*(?!\*))/g;
-  let last = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) {
-      parts.push(<span key={k++}>{text.slice(last, m.index)}</span>);
-    }
-    const t = m[0];
-    if (t.startsWith("**")) {
-      parts.push(
-        <span key={k++} className="font-semibold" style={{ color: "#e5e7eb" }}>
-          {t}
-        </span>,
-      );
-    } else if (t.startsWith("~~")) {
-      parts.push(
-        <span key={k++} className="hl-cmt line-through">
-          {t}
-        </span>,
-      );
-    } else if (t.startsWith("`")) {
-      parts.push(
-        <span key={k++} className="hl-tag">
-          {t}
-        </span>,
-      );
-    } else if (t.startsWith("==")) {
-      parts.push(
-        <span key={k++} className="hl-num">
-          {t}
-        </span>,
-      );
-    } else if (
-      t.startsWith("$$") ||
-      (t.startsWith("$") && !t.startsWith("${"))
-    ) {
-      parts.push(
-        <span key={k++} className="hl-num">
-          {t}
-        </span>,
-      );
-    } else if (t.startsWith("![")) {
-      parts.push(
-        <span key={k++} className="hl-fn">
-          {t}
-        </span>,
-      );
-    } else if (t.startsWith("[")) {
-      parts.push(
-        <span key={k++} className="hl-fn">
-          {t}
-        </span>,
-      );
-    } else if (t.startsWith("->")) {
-      parts.push(
-        <span key={k++} className="hl-fn">
-          {t}
-        </span>,
-      );
-    } else if (t.startsWith("{#")) {
-      parts.push(
-        <span key={k++} className="hl-attr">
-          {t}
-        </span>,
-      );
-    } else if (t.startsWith("#")) {
-      parts.push(
-        <span key={k++} className="hl-kw">
-          {t}
-        </span>,
-      );
-    } else if (t.startsWith("*")) {
-      parts.push(
-        <span key={k++} className="italic" style={{ color: "#abb2bf" }}>
-          {t}
-        </span>,
-      );
-    }
-    last = re.lastIndex;
-  }
-  if (last < text.length) {
-    parts.push(<span key={k++}>{text.slice(last)}</span>);
-  }
-  return [parts, k];
-}
-
-function highlightMindmap(code: string): ReactNode {
-  const lines = code.split("\n");
-  let inFrontmatter = false;
-
-  return lines.map((line, i) => {
-    // Empty line
-    if (!line.trim()) return <div key={i}>{"\n"}</div>;
-
-    // Frontmatter delimiter
-    if (line.trim() === "---") {
-      inFrontmatter = !inFrontmatter;
-      return (
-        <div key={i}>
-          <span className="hl-op">{line}</span>
-        </div>
-      );
-    }
-
-    // Inside frontmatter: key: value
-    if (inFrontmatter) {
-      const fm = line.match(/^(\s*)([\w-]+)(\s*:\s*)(.*)/);
-      if (fm) {
-        return (
-          <div key={i}>
-            <span>{fm[1]}</span>
-            <span className="hl-attr">{fm[2]}</span>
-            <span className="hl-op">{fm[3]}</span>
-            <span className="hl-str">{fm[4]}</span>
-          </div>
-        );
-      }
-      return (
-        <div key={i}>
-          <span>{line}</span>
-        </div>
-      );
-    }
-
-    // Remark lines (> ...)
-    const remarkMatch = line.match(/^(\s*)(>.*)/);
-    if (remarkMatch) {
-      return (
-        <div key={i}>
-          <span>{remarkMatch[1]}</span>
-          <span className="hl-cmt">{remarkMatch[2]}</span>
-        </div>
-      );
-    }
-
-    // Multi-line content (| ...)
-    const pipeMatch = line.match(/^(\s*)(\|)(.*)/);
-    if (pipeMatch) {
-      const [inlineParts] = highlightMindmapInline(pipeMatch[3], 2);
-      return (
-        <div key={i}>
-          <span>{pipeMatch[1]}</span>
-          <span className="hl-op">{pipeMatch[2]}</span>
-          {inlineParts}
-        </div>
-      );
-    }
-
-    // Lines with list markers (- / + / -.)
-    const listMatch = line.match(/^(\s*)([-+]\.?\s)(.*)/);
-    if (listMatch) {
-      const [, indent, marker, text] = listMatch;
-      const parts: ReactNode[] = [];
-      let k = 0;
-      parts.push(<span key={k++}>{indent}</span>);
-      parts.push(
-        <span key={k++} className="hl-op">
-          {marker}
-        </span>,
-      );
-
-      // Task markers
-      const taskMatch = text.match(/^\[([ x-])\]\s*/);
-      if (taskMatch) {
-        const status = taskMatch[1];
-        const cls =
-          status === "x" ? "hl-str" : status === "-" ? "hl-num" : "hl-cmt";
-        parts.push(
-          <span key={k++} className={cls}>
-            [{status}]{" "}
-          </span>,
-        );
-        const rest = text.slice(taskMatch[0].length);
-        const [inlineParts] = highlightMindmapInline(rest, k);
-        parts.push(...inlineParts);
-      } else {
-        const [inlineParts] = highlightMindmapInline(text, k);
-        parts.push(...inlineParts);
-      }
-
-      return <div key={i}>{parts}</div>;
-    }
-
-    // Root node (no indent, no marker)
-    return (
-      <div key={i}>
-        <span className="font-semibold" style={{ color: "#e5e7eb" }}>
-          {line}
-        </span>
-      </div>
-    );
-  });
-}
-
 // ---------------------------------------------------------------------------
 // CodeBlock component
 // ---------------------------------------------------------------------------
@@ -582,7 +382,7 @@ function CodeBlock({ children, lang }: { children: string; lang?: string }) {
   const highlighted = useMemo(() => {
     if (lang === "tsx" || lang === "typescript") return highlightTsx(children);
     if (lang === "bash") return highlightBash(children);
-    if (lang === "mindmap") return highlightMindmap(children);
+    if (lang === "mindmap") return <span dangerouslySetInnerHTML={{ __html: highlightMindmapHTML(children) }} />;
     if (lang === "css") return highlightCss(children);
     return children;
   }, [children, lang]);
@@ -904,6 +704,21 @@ Application Areas
           <p className="text-sm text-slate-500 mt-2 mb-6">
             Users can still pan, zoom, and select nodes but cannot create, edit,
             or delete. The context menu hides edit actions.
+          </p>
+
+          <SubHeading>Text Editor Mode</SubHeading>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            Pass the <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded text-sm">MindMapTextEditor</code> component
+            to enable a built-in text editing mode with syntax highlighting. Users can toggle between the visual mind map and a
+            markdown text editor via a button in the bottom-right corner.
+          </p>
+          <CodeBlock lang="tsx">{`import { MindMap, MindMapTextEditor } from "@xiangfa/mindmap";
+
+<MindMap markdown={markdown} textEditor={MindMapTextEditor} />`}</CodeBlock>
+          <p className="text-sm text-slate-500 mt-2 mb-6">
+            The text editor is opt-in and tree-shakeable — it is only bundled
+            when you import and pass it. If omitted, the text mode toggle button
+            is hidden.
           </p>
 
           <SubHeading>Plugins</SubHeading>
@@ -2029,6 +1844,18 @@ interface MindMapAIConfig {
                     <code>allPlugins</code>
                   </td>
                   <td>Enabled extended syntax plugins</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>textEditor</code>
+                  </td>
+                  <td>
+                    <code>ComponentType</code>
+                  </td>
+                  <td>
+                    <code>-</code>
+                  </td>
+                  <td>Pass <code>MindMapTextEditor</code> to enable text editing mode with syntax highlighting. Opt-in for tree-shaking.</td>
                 </tr>
                 <tr>
                   <td>
