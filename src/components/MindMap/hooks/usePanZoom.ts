@@ -103,7 +103,9 @@ export function usePanZoom(
       const mouseX = e.clientX - rect.left
       const mouseY = e.clientY - rect.top
 
-      const factor = e.deltaY > 0 ? 0.9 : 1.1
+      let dy = e.deltaY
+      if (e.deltaMode === 1) dy *= 16 // Firefox line-mode normalization
+      const factor = Math.pow(1.001, -dy)
       const newZoom = Math.min(Math.max(zoomRef.current * factor, 0.1), 5)
 
       setPan({
@@ -117,7 +119,7 @@ export function usePanZoom(
   }, [svgRef])
 
   const zoomIn = useCallback(() => {
-    const newZ = Math.min(zoomRef.current * 1.2, 5)
+    const newZ = Math.min(zoomRef.current * 1.15, 5)
     const svg = svgRef.current!
     const cx = svg.clientWidth / 2
     const cy = svg.clientHeight / 2
@@ -129,7 +131,7 @@ export function usePanZoom(
   }, [svgRef, animateTo])
 
   const zoomOut = useCallback(() => {
-    const newZ = Math.max(zoomRef.current * 0.8, 0.1)
+    const newZ = Math.max(zoomRef.current * 0.87, 0.1)
     const svg = svgRef.current!
     const cx = svg.clientWidth / 2
     const cy = svg.clientHeight / 2

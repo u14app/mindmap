@@ -20,6 +20,7 @@ interface ParsedItem {
   // Plugin extension fields from ParsedLineResult
   dottedLine?: boolean
   collapsed?: boolean
+  placeholder?: boolean
 }
 
 /**
@@ -138,6 +139,16 @@ export function parseMarkdownList(md: string, plugins?: MindMapPlugin[]): MindMa
       }
     }
 
+    // Match empty list markers (e.g. "- " with no text) for streaming placeholders
+    // Only on the last line — during streaming, incomplete items appear at the end
+    const emptyListMatch = line.match(/^(\s*)[*-]\s*$/)
+    if (emptyListMatch && i === lines.length - 1) {
+      const indent = emptyListMatch[1].replace(/\t/g, '  ').length
+      items.push({ indent, text: '', taskStatus: undefined, remarkLines: [], placeholder: true })
+      i++
+      continue
+    }
+
     // Detect bare root: first non-empty line without a list marker, before any list items
     if (bareRootText === null && items.length === 0) {
       const trimmed = line.trim()
@@ -232,6 +243,7 @@ export function parseMarkdownList(md: string, plugins?: MindMapPlugin[]): MindMa
         text,
         ...(taskStatus ? { taskStatus } : {}),
         ...(remarkLines.length > 0 ? { remark: remarkLines.join('\n') } : {}),
+        ...(_item.placeholder ? { placeholder: true } : {}),
       }
 
       while (stack.length > 1 && stack[stack.length - 1][1] >= level) {
@@ -304,6 +316,7 @@ export function parseMarkdownList(md: string, plugins?: MindMapPlugin[]): MindMa
       text,
       ...(taskStatus ? { taskStatus } : {}),
       ...(remarkLines.length > 0 ? { remark: remarkLines.join('\n') } : {}),
+      ...(_item.placeholder ? { placeholder: true } : {}),
     }
 
     // Find parent: pop stack until we find a node at level < effectiveLevel

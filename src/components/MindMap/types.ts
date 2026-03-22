@@ -19,6 +19,7 @@ export interface MindMapData {
   anchorId?: string              // Plugin: cross-link
   crossLinks?: CrossLink[]       // Plugin: cross-link
   collapsed?: boolean            // Plugin: folding
+  placeholder?: boolean           // Streaming: empty placeholder node
 }
 
 export type LayoutDirection = 'left' | 'right' | 'both'
@@ -50,6 +51,7 @@ export interface LayoutNode {
   anchorId?: string
   crossLinks?: CrossLink[]
   collapsed?: boolean
+  placeholder?: boolean
 }
 
 export interface Edge {

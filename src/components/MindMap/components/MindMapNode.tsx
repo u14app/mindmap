@@ -630,6 +630,7 @@ export function MindMapNode({
   const showInput = isEditing || isPendingEdit;
   const displayEditText = isPendingEdit && !isEditing ? "" : editText;
   const newClass = isNew ? "mindmap-node-new" : "";
+  const placeholderClass = node.placeholder ? "mindmap-node-placeholder" : "";
   const expandClass = expandDelay !== undefined ? "mindmap-node-expanding" : "";
   const expandStyle =
     expandDelay !== undefined
@@ -658,7 +659,7 @@ export function MindMapNode({
       <g
         key={node.id}
         transform={`translate(${nx}, ${ny})`}
-        className={`mindmap-node-g mindmap-node-root ${animClass} ${newClass} ${expandClass}${isGhost ? ' mindmap-node-ghost' : ''}`}
+        className={`mindmap-node-g mindmap-node-root ${animClass} ${newClass} ${placeholderClass} ${expandClass}${isGhost ? ' mindmap-node-ghost' : ''}`}
         data-branch-index={node.branchIndex}
         onMouseDown={(e) => onMouseDown(e, node.id)}
         onClick={(e) => onClick(e, node.id)}
@@ -815,7 +816,7 @@ export function MindMapNode({
     <g
       key={node.id}
       transform={`translate(${nx}, ${ny})`}
-      className={`mindmap-node-g mindmap-node-child ${animClass} ${newClass}${isGhost ? ' mindmap-node-ghost' : ''}`}
+      className={`mindmap-node-g mindmap-node-child ${animClass} ${newClass} ${placeholderClass}${isGhost ? ' mindmap-node-ghost' : ''}`}
       data-branch-index={node.branchIndex}
       onMouseDown={(e) => onMouseDown(e, node.id)}
       onClick={(e) => onClick(e, node.id)}

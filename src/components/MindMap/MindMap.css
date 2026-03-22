@@ -89,6 +89,16 @@
   animation: mindmap-node-appear 0.3s ease-out;
 }
 
+/* Streaming placeholder node pulse animation */
+@keyframes mindmap-placeholder-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+.mindmap-node-placeholder {
+  animation: mindmap-placeholder-pulse 1.5s ease-in-out infinite;
+}
+
 /* Fold expand animation for nodes */
 @keyframes mindmap-expand-appear {
   from {

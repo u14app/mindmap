@@ -151,7 +151,8 @@ function highlightCss(code: string): ReactNode {
     if (last < line.length) {
       const remainder = line.slice(last);
       // Check for CSS keyword values in the remainder
-      const valRe = /(#[0-9a-fA-F]{3,8}\b)|(--[\w-]+)|(\d+\.?\d*(?:px|em|rem|%|vh|vw|s|ms|deg|fr|ch)?\b)|([\w-]+)/g;
+      const valRe =
+        /(#[0-9a-fA-F]{3,8}\b)|(--[\w-]+)|(\d+\.?\d*(?:px|em|rem|%|vh|vw|s|ms|deg|fr|ch)?\b)|([\w-]+)/g;
       let vm: RegExpExecArray | null;
       let vLast = 0;
       while ((vm = valRe.exec(remainder)) !== null) {
@@ -715,8 +716,8 @@ function DocsPage() {
               href="#/"
               className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2 no-underline"
             >
-              <span className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-xs">hub</span>
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center text-white">
+                <img src="/logo.png" className="scale-150" alt="logo" />
               </span>
               <span className="hidden sm:block">Open MindMap</span>
             </a>
@@ -1856,9 +1857,9 @@ interface MindMapAIConfig {
 
           <SubHeading>Branch Colors</SubHeading>
           <p className="text-slate-600 leading-relaxed mb-4">
-            Every node and edge has a{" "}
-            <code>data-branch-index</code> attribute (0–9) indicating which
-            branch of the root it belongs to. Use this for per-branch styling:
+            Every node and edge has a <code>data-branch-index</code> attribute
+            (0–9) indicating which branch of the root it belongs to. Use this
+            for per-branch styling:
           </p>
           <CodeBlock lang="css">{`/* Custom colors for first 3 branches */
 .mindmap-edge[data-branch-index="0"] { stroke: #e74c3c; }

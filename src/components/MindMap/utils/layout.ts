@@ -34,6 +34,7 @@ interface InternalNode {
   anchorId?: string
   crossLinks?: MindMapData['crossLinks']
   collapsed?: boolean
+  placeholder?: boolean
 }
 
 let _ctx: CanvasRenderingContext2D | null = null
@@ -98,7 +99,7 @@ function buildInternal(
   const paddingH = isRoot ? THEME.root.paddingH : THEME.node.paddingH
   const paddingV = isRoot ? THEME.root.paddingV : THEME.node.paddingV
 
-  const textWidth = measureFormattedText(data.text, fontSize, fontWeight, data.taskStatus, !!data.remark)
+  const textWidth = data.placeholder ? 60 : measureFormattedText(data.text, fontSize, fontWeight, data.taskStatus, !!data.remark)
   let width = textWidth + paddingH * 2
   let height = fontSize + paddingV * 2
 
@@ -159,6 +160,7 @@ function buildInternal(
     anchorId: data.anchorId,
     crossLinks: data.crossLinks,
     collapsed: data.collapsed,
+    placeholder: data.placeholder,
   }
 }
 
@@ -215,6 +217,7 @@ function collectNodes(node: InternalNode, result: LayoutNode[]): void {
     anchorId: node.anchorId,
     crossLinks: node.crossLinks,
     collapsed: node.collapsed,
+    placeholder: node.placeholder,
   })
   for (const child of node.children) {
     collectNodes(child, result)

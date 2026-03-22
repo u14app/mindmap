@@ -303,8 +303,8 @@ function LandingPage() {
               href="#/"
               className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2 no-underline"
             >
-              <span className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-xs">hub</span>
+              <span className="w-7 h-7 rounded-lg flex items-center justify-center text-white">
+                <img src="/logo.png" className="scale-150" alt="logo" />
               </span>
               <span className="hidden sm:block">Open MindMap</span>
             </a>
