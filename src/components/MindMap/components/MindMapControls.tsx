@@ -21,7 +21,6 @@ export interface MindMapControlsProps {
 
 export function MindMapControls({
   zoom,
-  theme,
   messages,
   showZoom = true,
   mode,
@@ -36,18 +35,11 @@ export function MindMapControls({
     <>
       {/* Zoom controls - bottom left */}
       {showZoom && (
-        <div
-          className="mindmap-zoom-controls"
-          style={{
-            background: theme.controls.bgColor,
-            color: theme.controls.textColor,
-          }}
-        >
+        <div className="mindmap-zoom-controls">
           <button
             className="mindmap-ctrl-btn mindmap-ctrl-zoom-out"
             onClick={onZoomOut}
             title={messages.zoomOut}
-            style={{ color: theme.controls.textColor }}
           >
             <IconMinus size={16} />
           </button>
@@ -55,7 +47,6 @@ export function MindMapControls({
             className="mindmap-ctrl-pct"
             onClick={onAutoFit}
             title={messages.resetView}
-            style={{ color: theme.controls.textColor }}
           >
             {Math.round(zoom * 100)}%
           </button>
@@ -63,7 +54,6 @@ export function MindMapControls({
             className="mindmap-ctrl-btn mindmap-ctrl-zoom-in"
             onClick={onZoomIn}
             title={messages.zoomIn}
-            style={{ color: theme.controls.textColor }}
           >
             <IconPlus size={16} />
           </button>
@@ -71,18 +61,11 @@ export function MindMapControls({
       )}
 
       {/* Extra controls - bottom right (mode & fullscreen) */}
-      <div
-        className="mindmap-extra-controls"
-        style={{
-          background: theme.controls.bgColor,
-          color: theme.controls.textColor,
-        }}
-      >
+      <div className="mindmap-extra-controls">
         <button
           className="mindmap-ctrl-btn mindmap-ctrl-mode"
           onClick={onModeToggle}
           title={mode === 'view' ? messages.textMode : messages.viewMode}
-          style={{ color: theme.controls.textColor }}
         >
           {mode === 'view' ? (
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
@@ -101,7 +84,6 @@ export function MindMapControls({
           className="mindmap-ctrl-btn mindmap-ctrl-fullscreen"
           onClick={onFullscreenToggle}
           title={isFullscreen ? messages.exitFullscreen : messages.fullscreen}
-          style={{ color: theme.controls.textColor }}
         >
           {isFullscreen ? (
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">

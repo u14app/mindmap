@@ -29,6 +29,7 @@ import {
   addChildToSide,
 } from "./utils/tree-ops";
 import { useTheme } from "./hooks/useTheme";
+import { generateCSSVariables } from "./utils/theme";
 import { usePanZoom } from "./hooks/usePanZoom";
 import { useDrag } from "./hooks/useDrag";
 import { useNodeEdit } from "./hooks/useNodeEdit";
@@ -770,7 +771,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
   // --- Render ---
   return (
-    <div ref={containerRef} className="mindmap-container">
+    <div ref={containerRef} className="mindmap-container" style={generateCSSVariables(activeTheme) as React.CSSProperties}>
       {mode === 'text' && (
         <textarea
           className="mindmap-text-editor"
@@ -778,17 +779,13 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
           onChange={(e) => setTextContent(e.target.value)}
           onKeyDown={handleTextKeyDown}
           readOnly={readonlyProp}
-          style={{
-            background: activeTheme.canvas.bgColor,
-            color: activeTheme.node.textColor,
-            opacity: readonlyProp ? 0.7 : 1,
-          }}
+          style={readonlyProp ? { opacity: 0.7 } : undefined}
         />
       )}
       <svg
         ref={svgRef}
         className={`mindmap-svg ${draggingCanvas ? "dragging-canvas" : ""} ${floatingNodeId ? "dragging-node" : ""}`}
-        style={{ background: activeTheme.canvas.bgColor, display: mode === 'text' ? 'none' : 'block' }}
+        style={mode === 'text' ? { display: 'none' } : undefined}
         tabIndex={0}
         onMouseDown={handleCanvasMouseDown}
         onMouseMove={handleMouseMove}
@@ -799,10 +796,9 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         onContextMenu={handleContextMenu}
       >
         <g
-          className="mindmap-canvas"
+          className={`mindmap-canvas${initialReady ? ' mindmap-canvas-ready' : ''}`}
           transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
           opacity={initialReady ? 1 : 0}
-          style={{ transition: initialReady ? 'opacity 0.4s ease-out' : 'none' }}
         >
           {/* Edges */}
           <g className="mindmap-edges">
@@ -828,6 +824,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                   markerEnd={edge.isCrossLink ? 'url(#mindmap-arrowhead)' : undefined}
                   opacity={edge.isCrossLink ? 0.7 : 1}
                   fill="none"
+                  data-branch-index={nodeMap[edge.toId]?.branchIndex}
                   className={[
                     "mindmap-edge",
                     edge.isCrossLink ? "mindmap-edge-cross-link" : "",
@@ -857,7 +854,6 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                       fill={edge.color}
                       opacity={0.8}
                       fontFamily={activeTheme.node.fontFamily}
-                      style={{ pointerEvents: 'none' }}
                     >
                       {edge.label}
                     </text>
@@ -937,10 +933,9 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                     strokeWidth={activeTheme.connection.strokeWidth}
                     strokeLinecap="round"
                     fill="none"
-                    style={{ pointerEvents: 'none' }}
                   />
                 )}
-                <g className="mindmap-floating" transform={`translate(${dx}, ${dy})`} style={{ pointerEvents: 'none' }}>
+                <g className="mindmap-floating" transform={`translate(${dx}, ${dy})`}>
                 {/* Floating edges within subtree */}
                 {edges
                   .filter((e) => floatingSubtreeIds.has(e.fromId) && floatingSubtreeIds.has(e.toId))
@@ -1041,10 +1036,6 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
             left: remarkTooltip.x,
             top: remarkTooltip.y,
             transform: 'translateY(-100%)',
-            background: activeTheme.contextMenu.bgColor,
-            color: activeTheme.contextMenu.textColor,
-            borderColor: activeTheme.contextMenu.borderColor,
-            border: `1px solid ${activeTheme.contextMenu.borderColor}`,
           }}
         >
           {remarkTooltip.text}

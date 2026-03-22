@@ -140,6 +140,38 @@ In readonly mode, users can still pan, zoom, and select nodes, but cannot create
 <MindMap data={data} theme="light" /> {/* always light */}
 ```
 
+### Custom Styling
+
+Override CSS custom properties on the container to customize colors, fonts, and more:
+
+```css
+/* Override theme variables */
+.mindmap-container {
+  --mindmap-root-bg: #1a73e8;
+  --mindmap-canvas-bg: #f0f4f8;
+  --mindmap-node-text: #1a1a2e;
+}
+```
+
+Target specific elements with semantic CSS classes:
+
+```css
+/* Style all edges */
+.mindmap-edge { stroke-width: 3; }
+
+/* Style root node background */
+.mindmap-node-root .mindmap-node-bg { fill: #6c5ce7; }
+```
+
+Customize individual branch colors via `data-branch-index`:
+
+```css
+.mindmap-edge[data-branch-index="0"] { stroke: #e74c3c; }
+.mindmap-edge[data-branch-index="1"] { stroke: #2ecc71; }
+```
+
+> See [Custom Styling Guide](docs/Custom%20Styling.md) for the full list of 30+ CSS variables, class selectors, and examples.
+
 ### Layout Direction
 
 ```tsx

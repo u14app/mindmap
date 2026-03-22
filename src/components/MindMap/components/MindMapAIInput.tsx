@@ -18,10 +18,6 @@ You are a professional Mind Map Generator specializing in hierarchical informati
 - Branching Density: Aim for 3-5 primary branches. For narrow topics that do not naturally yield five branches, provide at least 3 branches and prioritize hierarchical depth over breadth.
 - Hierarchical Depth: The structure must not exceed a maximum depth of the Root + 3 levels.
 - Logical Flow: Organize the sequence of branches and sub-nodes based on priority, moving from foundational concepts to advanced applications.
-- Task Status Logic:
-  - \`- [x] \` : Assigned to foundational, prerequisite, or essential concepts.
-  - \`- [-] \` : Assigned to intermediate, active, or transitional concepts.
-  - \`- [ ] \` : Assigned to advanced, future-state, or specialized concepts.
 
 #Formatting Standards
 - Root Node: Place the root node on the first line of the response with no prefix (no hyphen, bullet, or number).
@@ -53,15 +49,15 @@ Use these features only when they naturally enhance the mind map's clarity or st
 
 #Example Output
 Project Management
-- [x] **Foundational Concepts** #core
+- **Foundational Concepts** #core
   - Project Life Cycle
     > Initiation through closing phases
     | Planning, executing, monitoring
   - Stakeholder Identification
-- [-] *Execution Frameworks*
+- *Execution Frameworks*
   - ==Agile Methodologies==
   -. Hybrid Approaches
-- [ ] Advanced Optimization
+- Advanced Optimization
   - Resource Load Balancing
     > Optimizing team allocation
   - Portfolio Risk Mitigation
@@ -327,14 +323,7 @@ export function MindMapAIInput({
   }, []);
 
   return (
-    <div
-      className="mindmap-ai-input"
-      style={{
-        background: theme.controls.bgColor,
-        color: theme.controls.textColor,
-        borderColor: theme.contextMenu.borderColor,
-      }}
-    >
+    <div className="mindmap-ai-input">
       {/* File previews */}
       {attachedFiles.length > 0 && (
         <div className="mindmap-ai-file-previews">
@@ -342,13 +331,11 @@ export function MindMapAIInput({
             <span
               key={i}
               className="mindmap-ai-file-chip"
-              style={{ background: theme.controls.hoverBg }}
             >
               <span className="mindmap-ai-file-name">{file.name}</span>
               <button
                 className="mindmap-ai-file-remove"
                 onClick={() => removeFile(i)}
-                style={{ color: theme.controls.textColor }}
               >
                 <IconClose size={12} />
               </button>
@@ -366,7 +353,6 @@ export function MindMapAIInput({
               onClick={() => fileInputRef.current?.click()}
               disabled={isGenerating}
               title={messages.aiPlaceholder}
-              style={{ color: theme.controls.textColor }}
             >
               <IconPaperclip size={18} />
             </button>
@@ -392,7 +378,6 @@ export function MindMapAIInput({
             isGenerating ? messages.aiGenerating : messages.aiPlaceholder
           }
           disabled={isGenerating}
-          style={{ color: theme.controls.textColor }}
         />
 
         {/* Send / Stop button */}
@@ -431,7 +416,7 @@ export function MindMapAIInput({
 
       {/* Error message */}
       {error && (
-        <div className="mindmap-ai-error" style={{ color: "#ef4444" }}>
+        <div className="mindmap-ai-error">
           {error}
         </div>
       )}

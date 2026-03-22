@@ -42,6 +42,7 @@ export interface LayoutNode {
   parentId?: string
   remark?: string
   taskStatus?: TaskStatus
+  branchIndex?: number
   // Plugin extension fields
   dottedLine?: boolean
   multiLineContent?: string[]

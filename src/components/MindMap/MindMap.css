@@ -12,6 +12,7 @@
   cursor: grab;
   user-select: none;
   touch-action: none;
+  background: var(--mindmap-canvas-bg);
 }
 
 .mindmap-svg:focus {
@@ -24,6 +25,43 @@
 
 .mindmap-svg.dragging-node {
   cursor: grabbing;
+}
+
+/* Node interaction */
+.mindmap-node-g {
+  cursor: pointer;
+}
+
+.mindmap-node-ghost {
+  opacity: 0.3;
+}
+
+/* Canvas entrance transition */
+.mindmap-canvas-ready {
+  transition: opacity 0.4s ease-out;
+}
+
+/* Floating elements (drag preview) */
+.mindmap-floating,
+.mindmap-floating-edge,
+.mindmap-edge-label {
+  pointer-events: none;
+}
+
+/* Fold toggle button */
+.mindmap-fold-btn {
+  cursor: pointer;
+}
+
+/* LaTeX overlays */
+.mindmap-latex {
+  overflow: visible;
+  pointer-events: none;
+}
+
+.mindmap-latex-content {
+  white-space: nowrap;
+  text-align: center;
 }
 
 /* Node animation for smooth transitions */
@@ -118,6 +156,8 @@
   border-radius: 8px;
   padding: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--mindmap-controls-bg);
+  color: var(--mindmap-controls-text);
 }
 
 /* Control buttons */
@@ -175,6 +215,8 @@
   padding: 4px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 20;
+  background: var(--mindmap-controls-bg);
+  color: var(--mindmap-controls-text);
 }
 
 /* Text editor for text mode */
@@ -192,6 +234,8 @@
   line-height: 1.7;
   box-sizing: border-box;
   z-index: 10;
+  background: var(--mindmap-canvas-bg);
+  color: var(--mindmap-node-text);
 }
 
 /* Add child button */
@@ -218,6 +262,10 @@
     system-ui,
     -apple-system,
     sans-serif;
+  background: var(--mindmap-ctx-bg);
+  color: var(--mindmap-ctx-text);
+  border-color: var(--mindmap-ctx-border);
+  box-shadow: 0 4px 16px var(--mindmap-ctx-shadow);
 }
 
 .mindmap-ctx-item {
@@ -258,6 +306,9 @@
   padding: 4px 0;
   min-width: 140px;
   border: 1px solid;
+  background: var(--mindmap-ctx-bg);
+  border-color: var(--mindmap-ctx-border);
+  box-shadow: 0 4px 16px var(--mindmap-ctx-shadow);
 }
 
 .mindmap-ctx-has-sub {
@@ -504,6 +555,9 @@
     system-ui,
     -apple-system,
     sans-serif;
+  background: var(--mindmap-ctx-bg);
+  color: var(--mindmap-ctx-text);
+  border: 1px solid var(--mindmap-ctx-border);
 }
 
 /* AI Input */
@@ -524,6 +578,9 @@
     -apple-system,
     sans-serif;
   animation: mindmap-fade-in 0.15s ease-out;
+  background: var(--mindmap-controls-bg);
+  color: var(--mindmap-controls-text);
+  border-color: var(--mindmap-ctx-border);
 }
 
 .mindmap-ai-input-row {
@@ -672,6 +729,7 @@
   border-radius: 12px;
   font-size: 12px;
   max-width: 160px;
+  background: var(--mindmap-controls-hover);
 }
 
 .mindmap-ai-file-name {
@@ -704,6 +762,7 @@
   padding: 0 16px 8px;
   font-size: 12px;
   animation: mindmap-fade-in 0.15s ease-out;
+  color: #ef4444;
 }
 
 @media (max-width: 768px) {

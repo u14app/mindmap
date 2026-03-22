@@ -21,6 +21,7 @@ const SECTIONS = [
   { id: "task-status", title: "Task Status", icon: "check_box" },
   { id: "extended-syntax", title: "Extended Syntax", icon: "extension" },
   { id: "ai-generation", title: "AI Generation", icon: "smart_toy" },
+  { id: "custom-styling", title: "Custom Styling", icon: "palette" },
   { id: "api-reference", title: "API Reference", icon: "api" },
   {
     id: "keyboard-shortcuts",
@@ -37,6 +38,164 @@ const SECTIONS = [
 // ---------------------------------------------------------------------------
 // Syntax highlight helpers (no third-party deps — oneDark palette)
 // ---------------------------------------------------------------------------
+
+const CSS_KEYWORDS = new Set([
+  "important",
+  "inherit",
+  "initial",
+  "unset",
+  "revert",
+  "none",
+  "auto",
+  "block",
+  "flex",
+  "grid",
+  "inline",
+  "solid",
+  "dashed",
+  "dotted",
+  "hidden",
+  "visible",
+  "absolute",
+  "relative",
+  "fixed",
+  "sticky",
+  "static",
+  "bold",
+  "normal",
+  "italic",
+  "center",
+  "left",
+  "right",
+  "top",
+  "bottom",
+  "transparent",
+  "currentColor",
+  "square",
+]);
+
+function highlightCss(code: string): ReactNode {
+  return code.split("\n").map((line, i) => {
+    const parts: ReactNode[] = [];
+    const re =
+      /(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|(--[\w-]+)|(#(?:[0-9a-fA-F]{3,8})\b)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|(\.[\w-]+(?:\[[\w-]+(?:="[^"]*")?\])?)|(\d+\.?\d*(?:px|em|rem|%|vh|vw|s|ms|deg|fr|ch)?\b)|([\w-]+)\s*(?=:)|([{};:,])/g;
+    let m: RegExpExecArray | null;
+    let last = 0;
+    let k = 0;
+    while ((m = re.exec(line)) !== null) {
+      if (m.index > last) {
+        parts.push(<span key={k++}>{line.slice(last, m.index)}</span>);
+      }
+      const [token, comment, varName, hex, str, selector, num, prop, punct] = m;
+      if (comment) {
+        parts.push(
+          <span key={k++} className="hl-cmt">
+            {token}
+          </span>,
+        );
+      } else if (varName) {
+        parts.push(
+          <span key={k++} className="hl-num">
+            {token}
+          </span>,
+        );
+      } else if (hex) {
+        parts.push(
+          <span key={k++} className="hl-num">
+            {token}
+          </span>,
+        );
+      } else if (str) {
+        parts.push(
+          <span key={k++} className="hl-str">
+            {token}
+          </span>,
+        );
+      } else if (selector) {
+        parts.push(
+          <span key={k++} className="hl-tag">
+            {token}
+          </span>,
+        );
+      } else if (num) {
+        parts.push(
+          <span key={k++} className="hl-num">
+            {token}
+          </span>,
+        );
+      } else if (prop) {
+        if (CSS_KEYWORDS.has(prop)) {
+          parts.push(
+            <span key={k++} className="hl-kw">
+              {token}
+            </span>,
+          );
+        } else {
+          parts.push(
+            <span key={k++} className="hl-fn">
+              {token}
+            </span>,
+          );
+        }
+      } else if (punct) {
+        parts.push(
+          <span key={k++} className="hl-op">
+            {token}
+          </span>,
+        );
+      } else {
+        parts.push(<span key={k++}>{token}</span>);
+      }
+      last = re.lastIndex;
+    }
+    if (last < line.length) {
+      const remainder = line.slice(last);
+      // Check for CSS keyword values in the remainder
+      const valRe = /(#[0-9a-fA-F]{3,8}\b)|(--[\w-]+)|(\d+\.?\d*(?:px|em|rem|%|vh|vw|s|ms|deg|fr|ch)?\b)|([\w-]+)/g;
+      let vm: RegExpExecArray | null;
+      let vLast = 0;
+      while ((vm = valRe.exec(remainder)) !== null) {
+        if (vm.index > vLast) {
+          parts.push(<span key={k++}>{remainder.slice(vLast, vm.index)}</span>);
+        }
+        const [vToken] = vm;
+        const [, vHex, vVar, vNum, vWord] = vm;
+        if (vHex) {
+          parts.push(
+            <span key={k++} className="hl-num">
+              {vToken}
+            </span>,
+          );
+        } else if (vVar) {
+          parts.push(
+            <span key={k++} className="hl-num">
+              {vToken}
+            </span>,
+          );
+        } else if (vNum) {
+          parts.push(
+            <span key={k++} className="hl-num">
+              {vToken}
+            </span>,
+          );
+        } else if (vWord && CSS_KEYWORDS.has(vWord)) {
+          parts.push(
+            <span key={k++} className="hl-kw">
+              {vToken}
+            </span>,
+          );
+        } else {
+          parts.push(<span key={k++}>{vToken}</span>);
+        }
+        vLast = valRe.lastIndex;
+      }
+      if (vLast < remainder.length) {
+        parts.push(<span key={k++}>{remainder.slice(vLast)}</span>);
+      }
+    }
+    return <div key={i}>{parts.length ? parts : "\n"}</div>;
+  });
+}
 
 const TSX_KEYWORDS = new Set([
   "import",
@@ -423,6 +582,7 @@ function CodeBlock({ children, lang }: { children: string; lang?: string }) {
     if (lang === "tsx" || lang === "typescript") return highlightTsx(children);
     if (lang === "bash") return highlightBash(children);
     if (lang === "mindmap") return highlightMindmap(children);
+    if (lang === "css") return highlightCss(children);
     return children;
   }, [children, lang]);
 
@@ -1469,6 +1629,260 @@ interface MindMapAIConfig {
             browser. For production deployments, use a proxy endpoint to keep
             your key server-side.
           </p>
+
+          {/* ============================================================= */}
+          {/* Custom Styling                                                   */}
+          {/* ============================================================= */}
+          <SectionHeading id="custom-styling">Custom Styling</SectionHeading>
+
+          <p className="text-slate-600 leading-relaxed mb-4">
+            Open MindMap exposes <strong>30+ CSS custom properties</strong> and
+            semantic CSS classes on every SVG element. You can customize colors,
+            fonts, edges, and branch styles with plain CSS — no JavaScript
+            needed.
+          </p>
+
+          <SubHeading>CSS Custom Properties</SubHeading>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            Override CSS variables on <code>.mindmap-container</code> to change
+            theme values globally:
+          </p>
+          <CodeBlock lang="css">{`.mindmap-container {
+  --mindmap-canvas-bg: #f0f4f8;
+  --mindmap-root-bg: #1a73e8;
+  --mindmap-root-text: #ffffff;
+  --mindmap-node-text: #1a1a2e;
+  --mindmap-edge-width: 3;
+}`}</CodeBlock>
+
+          <p className="text-slate-600 leading-relaxed mt-6 mb-4">
+            Available variable groups:
+          </p>
+          <div className="docs-table-wrap my-6">
+            <table className="docs-table">
+              <thead>
+                <tr>
+                  <th>Group</th>
+                  <th>Variables</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Canvas</td>
+                  <td>
+                    <code>--mindmap-canvas-bg</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Root Node</td>
+                  <td>
+                    <code>--mindmap-root-bg</code>,{" "}
+                    <code>--mindmap-root-text</code>,{" "}
+                    <code>--mindmap-root-font-size</code>,{" "}
+                    <code>--mindmap-root-font-weight</code>,{" "}
+                    <code>--mindmap-root-font-family</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Child Nodes</td>
+                  <td>
+                    <code>--mindmap-node-text</code>,{" "}
+                    <code>--mindmap-node-font-size</code>,{" "}
+                    <code>--mindmap-node-font-weight</code>,{" "}
+                    <code>--mindmap-node-font-family</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Level 1</td>
+                  <td>
+                    <code>--mindmap-level1-font-size</code>,{" "}
+                    <code>--mindmap-level1-font-weight</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Edges</td>
+                  <td>
+                    <code>--mindmap-edge-width</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Selection</td>
+                  <td>
+                    <code>--mindmap-selection-stroke</code>,{" "}
+                    <code>--mindmap-selection-fill</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Highlight</td>
+                  <td>
+                    <code>--mindmap-highlight-text</code>,{" "}
+                    <code>--mindmap-highlight-bg</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Add Button</td>
+                  <td>
+                    <code>--mindmap-addbtn-fill</code>,{" "}
+                    <code>--mindmap-addbtn-hover</code>,{" "}
+                    <code>--mindmap-addbtn-icon</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Controls</td>
+                  <td>
+                    <code>--mindmap-controls-bg</code>,{" "}
+                    <code>--mindmap-controls-text</code>,{" "}
+                    <code>--mindmap-controls-hover</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Context Menu</td>
+                  <td>
+                    <code>--mindmap-ctx-bg</code>,{" "}
+                    <code>--mindmap-ctx-text</code>,{" "}
+                    <code>--mindmap-ctx-hover</code>,{" "}
+                    <code>--mindmap-ctx-border</code>,{" "}
+                    <code>--mindmap-ctx-shadow</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Branch Colors</td>
+                  <td>
+                    <code>--mindmap-branch-0</code> through{" "}
+                    <code>--mindmap-branch-9</code>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <SubHeading>CSS Class Selectors</SubHeading>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            All SVG elements have semantic CSS classes that you can target
+            directly. Since SVG presentation attributes have lower specificity
+            than CSS rules, your styles will take precedence:
+          </p>
+          <CodeBlock lang="css">{`/* Change root node background */
+.mindmap-node-root .mindmap-node-bg {
+  fill: #6c5ce7;
+}
+
+/* Make edges thicker */
+.mindmap-edge {
+  stroke-width: 3;
+}
+
+/* Style node underlines */
+.mindmap-node-underline {
+  stroke-width: 3;
+  stroke-linecap: square;
+}`}</CodeBlock>
+
+          <p className="text-slate-600 leading-relaxed mt-6 mb-4">
+            Key classes:
+          </p>
+          <div className="docs-table-wrap my-6">
+            <table className="docs-table">
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th>Target</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <code>.mindmap-node-root</code>
+                  </td>
+                  <td>Root node group</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>.mindmap-node-child</code>
+                  </td>
+                  <td>Child node group</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>.mindmap-node-bg</code>
+                  </td>
+                  <td>Node background rect</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>.mindmap-node-text</code>
+                  </td>
+                  <td>Node text element</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>.mindmap-node-underline</code>
+                  </td>
+                  <td>Child node underline</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>.mindmap-edge</code>
+                  </td>
+                  <td>Connection line</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>.mindmap-edge-label</code>
+                  </td>
+                  <td>Edge label text</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>.mindmap-add-btn</code>
+                  </td>
+                  <td>Add child button</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>.mindmap-fold-btn</code>
+                  </td>
+                  <td>Fold/unfold toggle</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>.mindmap-tag</code>
+                  </td>
+                  <td>Tag badge</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <SubHeading>Branch Colors</SubHeading>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            Every node and edge has a{" "}
+            <code>data-branch-index</code> attribute (0–9) indicating which
+            branch of the root it belongs to. Use this for per-branch styling:
+          </p>
+          <CodeBlock lang="css">{`/* Custom colors for first 3 branches */
+.mindmap-edge[data-branch-index="0"] { stroke: #e74c3c; }
+.mindmap-edge[data-branch-index="1"] { stroke: #2ecc71; }
+.mindmap-edge[data-branch-index="2"] { stroke: #3498db; }
+
+/* Also works on nodes */
+.mindmap-node-g[data-branch-index="0"] .mindmap-node-underline {
+  stroke: #e74c3c;
+}`}</CodeBlock>
+
+          <SubHeading>SVG Export</SubHeading>
+          <p className="text-slate-600 leading-relaxed mb-4">
+            Exported SVGs embed a <code>&lt;style&gt;</code> block with resolved
+            values and include the same semantic classes and{" "}
+            <code>data-branch-index</code> attributes. This means:
+          </p>
+          <ul className="list-disc list-inside text-slate-600 leading-relaxed mb-4 space-y-1">
+            <li>Standalone SVG files render correctly without external CSS</li>
+            <li>
+              When embedded in HTML, the same CSS selectors can override the
+              exported styles
+            </li>
+          </ul>
 
           {/* ============================================================= */}
           {/* API Reference                                                  */}

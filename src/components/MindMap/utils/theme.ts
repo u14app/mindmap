@@ -171,3 +171,61 @@ export function getTheme(mode: "light" | "dark"): ThemeColors {
 
 // Backward compatible default export
 export const THEME = LIGHT_THEME;
+
+/**
+ * Generate CSS custom properties from theme for the container element.
+ * Users can override these to customize the mind map appearance.
+ */
+export function generateCSSVariables(
+  theme: ThemeColors,
+  branchColors: string[] = BRANCH_COLORS,
+): Record<string, string> {
+  const vars: Record<string, string> = {
+    '--mindmap-canvas-bg': theme.canvas.bgColor,
+    '--mindmap-root-bg': theme.root.bgColor,
+    '--mindmap-root-text': theme.root.textColor,
+    '--mindmap-root-font-size': `${theme.root.fontSize}px`,
+    '--mindmap-root-font-weight': String(theme.root.fontWeight),
+    '--mindmap-root-font-family': theme.root.fontFamily,
+    '--mindmap-node-text': theme.node.textColor,
+    '--mindmap-node-font-size': `${theme.node.fontSize}px`,
+    '--mindmap-node-font-weight': String(theme.node.fontWeight),
+    '--mindmap-node-font-family': theme.node.fontFamily,
+    '--mindmap-level1-font-size': `${theme.level1.fontSize}px`,
+    '--mindmap-level1-font-weight': String(theme.level1.fontWeight),
+    '--mindmap-edge-width': String(theme.connection.strokeWidth),
+    '--mindmap-selection-stroke': theme.selection.strokeColor,
+    '--mindmap-selection-fill': theme.selection.fillColor,
+    '--mindmap-highlight-text': theme.highlight.textColor,
+    '--mindmap-highlight-bg': theme.highlight.bgColor,
+    '--mindmap-addbtn-fill': theme.addBtn.fill,
+    '--mindmap-addbtn-hover': theme.addBtn.hoverFill,
+    '--mindmap-addbtn-icon': theme.addBtn.iconColor,
+    '--mindmap-controls-bg': theme.controls.bgColor,
+    '--mindmap-controls-text': theme.controls.textColor,
+    '--mindmap-controls-hover': theme.controls.hoverBg,
+    '--mindmap-ctx-bg': theme.contextMenu.bgColor,
+    '--mindmap-ctx-text': theme.contextMenu.textColor,
+    '--mindmap-ctx-hover': theme.contextMenu.hoverBg,
+    '--mindmap-ctx-border': theme.contextMenu.borderColor,
+    '--mindmap-ctx-shadow': theme.contextMenu.shadowColor,
+  };
+  for (let i = 0; i < branchColors.length; i++) {
+    vars[`--mindmap-branch-${i}`] = branchColors[i];
+  }
+  return vars;
+}
+
+/**
+ * Generate a CSS style string with resolved values for SVG export.
+ * Uses concrete values (not CSS variables) for maximum compatibility.
+ */
+export function generateExportStyles(theme: ThemeColors): string {
+  return [
+    `.mindmap-edge { stroke-width: ${theme.connection.strokeWidth}; stroke-linecap: round; fill: none; }`,
+    `.mindmap-node-underline { stroke-width: 2.5; stroke-linecap: round; }`,
+    `.mindmap-code-bg { fill: rgba(128,128,128,0.12); }`,
+    `.mindmap-highlight-bg { fill: ${theme.highlight.bgColor}; }`,
+    `.mindmap-edge-label { pointer-events: none; font-family: ${theme.node.fontFamily}; }`,
+  ].join('\n    ');
+}

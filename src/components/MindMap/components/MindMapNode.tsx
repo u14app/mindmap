@@ -397,15 +397,13 @@ function SvgNodeContent({
               y={-foHeight / 2}
               width={foWidth}
               height={foHeight}
-              style={{ overflow: "visible", pointerEvents: "none" }}
             >
               <div
+                className="mindmap-latex-content"
                 style={{
                   fontSize: fontSize * 0.75,
                   lineHeight: `${foHeight}px`,
                   color: textColor,
-                  whiteSpace: "nowrap",
-                  textAlign: "center",
                 }}
                 dangerouslySetInnerHTML={{ __html: html }}
               />
@@ -510,15 +508,13 @@ function SvgNodeContent({
                       y={mlY - mlFoHeight / 2}
                       width={mlFoWidth}
                       height={mlFoHeight}
-                      style={{ overflow: "visible", pointerEvents: "none" }}
                     >
                       <div
+                        className="mindmap-latex-content"
                         style={{
                           fontSize: mlFontSize * 0.75,
                           lineHeight: `${mlFoHeight}px`,
                           color: textColor,
-                          whiteSpace: "nowrap",
-                          textAlign: "center",
                           opacity: 0.8,
                         }}
                         dangerouslySetInnerHTML={{ __html: html }}
@@ -591,7 +587,6 @@ function SvgNodeContent({
           dominantBaseline="central"
           fontSize={remarkFontSize}
           opacity={0.5}
-          style={{ cursor: "help" }}
           onMouseEnter={() => onRemarkHover?.(node.id)}
           onMouseLeave={() => onRemarkHover?.(null)}
         >
@@ -663,15 +658,12 @@ export function MindMapNode({
       <g
         key={node.id}
         transform={`translate(${nx}, ${ny})`}
-        className={`mindmap-node-g mindmap-node-root ${animClass} ${newClass} ${expandClass}`}
+        className={`mindmap-node-g mindmap-node-root ${animClass} ${newClass} ${expandClass}${isGhost ? ' mindmap-node-ghost' : ''}`}
+        data-branch-index={node.branchIndex}
         onMouseDown={(e) => onMouseDown(e, node.id)}
         onClick={(e) => onClick(e, node.id)}
         onDoubleClick={(e) => onDoubleClick(e, node.id, rawEditText)}
-        style={{
-          cursor: "pointer",
-          opacity: isGhost ? 0.3 : 1,
-          ...expandStyle,
-        }}
+        style={expandStyle}
       >
         <rect
           className="mindmap-node-bg"
@@ -796,7 +788,6 @@ export function MindMapNode({
         {node.collapsed !== undefined && readonlyProp && onFoldToggle && (
           <g
             className="mindmap-fold-btn"
-            style={{ cursor: "pointer" }}
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
@@ -824,11 +815,11 @@ export function MindMapNode({
     <g
       key={node.id}
       transform={`translate(${nx}, ${ny})`}
-      className={`mindmap-node-g mindmap-node-child ${animClass} ${newClass}`}
+      className={`mindmap-node-g mindmap-node-child ${animClass} ${newClass}${isGhost ? ' mindmap-node-ghost' : ''}`}
+      data-branch-index={node.branchIndex}
       onMouseDown={(e) => onMouseDown(e, node.id)}
       onClick={(e) => onClick(e, node.id)}
       onDoubleClick={(e) => onDoubleClick(e, node.id, rawEditText)}
-      style={{ cursor: "pointer", opacity: isGhost ? 0.3 : 1 }}
     >
       {/* Invisible hit area */}
       <rect
@@ -928,7 +919,6 @@ export function MindMapNode({
       {node.collapsed !== undefined && readonlyProp && onFoldToggle && (
         <g
           className="mindmap-fold-btn"
-          style={{ cursor: "pointer" }}
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();

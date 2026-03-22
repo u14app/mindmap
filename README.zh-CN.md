@@ -140,6 +140,38 @@ const markdown = `
 <MindMap data={data} theme="light" /> {/* 始终亮色 */}
 ```
 
+### 自定义样式
+
+通过覆盖容器上的 CSS 自定义属性来定制颜色、字体等：
+
+```css
+/* 覆盖主题变量 */
+.mindmap-container {
+  --mindmap-root-bg: #1a73e8;
+  --mindmap-canvas-bg: #f0f4f8;
+  --mindmap-node-text: #1a1a2e;
+}
+```
+
+通过语义化 CSS 类选择器定制特定元素：
+
+```css
+/* 定制所有连线 */
+.mindmap-edge { stroke-width: 3; }
+
+/* 定制根节点背景 */
+.mindmap-node-root .mindmap-node-bg { fill: #6c5ce7; }
+```
+
+通过 `data-branch-index` 定制各分支颜色：
+
+```css
+.mindmap-edge[data-branch-index="0"] { stroke: #e74c3c; }
+.mindmap-edge[data-branch-index="1"] { stroke: #2ecc71; }
+```
+
+> 完整的 30+ CSS 变量、class 选择器和示例请参阅 [自定义样式指南](docs/Custom%20Styling.md)。
+
 ### 布局方向
 
 ```tsx

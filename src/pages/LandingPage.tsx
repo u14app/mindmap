@@ -7,6 +7,7 @@ import {
 } from "react";
 import { MindMap, allPlugins } from "../components/MindMap";
 import type { MindMapRef } from "../components/MindMap";
+import { version } from "../../package.json";
 import "../App.css";
 
 // ---------------------------------------------------------------------------
@@ -350,7 +351,7 @@ function LandingPage() {
             <span className="material-symbols-outlined text-[14px]">
               terminal
             </span>
-            v0.4.0 &middot; Open Source
+            {`v${version}`} &middot; Open Source
           </div>
 
           <h1 className="hero-animate text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight mb-6 md:mb-8 text-gradient leading-tight">
@@ -594,6 +595,11 @@ function LandingPage() {
                 icon: "dark_mode",
                 title: "Dark Mode",
                 desc: "Auto-detects prefers-color-scheme, or explicitly set light / dark.",
+              },
+              {
+                icon: "palette",
+                title: "CSS Customizable",
+                desc: "30+ CSS custom properties and semantic classes. Override colors, fonts, and branch styles with plain CSS.",
               },
               {
                 icon: "keyboard",
@@ -906,7 +912,7 @@ function LandingPage() {
         >
           <div className="bg-slate-900 rounded-2xl p-8 md:p-20 text-center text-white relative overflow-hidden">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,122,255,0.15)_0%,transparent_70%)]" />
-            <h2 className="text-3xl md:text-6xl font-bold mb-6 md:mb-8 relative z-10 tracking-tight">
+            <h2 className="text-3xl text-white md:text-6xl font-bold mb-6 md:mb-8 relative z-10 tracking-tight">
               Precision in Thought.
             </h2>
             <p className="text-slate-400 text-base md:text-xl max-w-xl mx-auto mb-8 md:mb-12 relative z-10 leading-relaxed font-medium">

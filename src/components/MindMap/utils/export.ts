@@ -1,7 +1,7 @@
 import type { LayoutNode, Edge } from '../types'
 import type { ThemeColors } from './theme'
 import type { MindMapPlugin } from '../plugins/types'
-import { THEME } from './theme'
+import { THEME, generateExportStyles } from './theme'
 import { buildSvgNodeTextString } from './inline-markdown'
 import { runExportNodeDecoration, runExportOverlay } from '../plugins/runner'
 
@@ -14,7 +14,8 @@ interface ExportOptions {
 }
 
 /**
- * Build SVG string for export. Uses pure SVG elements with inline styles.
+ * Build SVG string for export. Embeds a <style> block with resolved values
+ * and applies semantic CSS classes to elements for external customization.
  * Works for both SVG file export and PNG conversion.
  */
 export function buildExportSVG(
@@ -42,21 +43,29 @@ export function buildExportSVG(
   const parts: string[] = []
   parts.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`)
 
+  // Embedded style block with resolved values
+  parts.push(`<defs>`)
+  parts.push(`  <style>`)
+  parts.push(`    ${generateExportStyles(theme)}`)
+  parts.push(`  </style>`)
+
   // Arrow marker for cross-links
   if (edges.some(e => e.isCrossLink)) {
-    parts.push(`<defs>`)
     parts.push(`<marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">`)
     parts.push(`<path d="M0,0 L8,3 L0,6" fill="none" stroke="currentColor" stroke-width="1.5"/>`)
     parts.push(`</marker>`)
-    parts.push(`</defs>`)
   }
+
+  parts.push(`</defs>`)
 
   parts.push(`<rect width="100%" height="100%" fill="${background}"/>`)
   parts.push(`<g transform="translate(${offsetX}, ${offsetY})">`)
 
   // Edges
   for (const edge of edges) {
-    let attrs = `d="${edge.path}" stroke="${edge.color}" stroke-width="${theme.connection.strokeWidth}" stroke-linecap="round" fill="none"`
+    const toNode = nodes.find(n => n.id === edge.toId)
+    const branchAttr = toNode?.branchIndex !== undefined ? ` data-branch-index="${toNode.branchIndex}"` : ''
+    let attrs = `class="mindmap-edge" d="${edge.path}" stroke="${edge.color}"${branchAttr}`
     if (edge.strokeDasharray) {
       attrs += ` stroke-dasharray="${edge.strokeDasharray}"`
     }
@@ -69,11 +78,10 @@ export function buildExportSVG(
     if (edge.label) {
       // Approximate midpoint of the path
       const fromNode = nodes.find(n => n.id === edge.fromId)
-      const toNode = nodes.find(n => n.id === edge.toId)
       if (fromNode && toNode) {
         const mx = (fromNode.x + toNode.x) / 2
         const my = (fromNode.y + toNode.y) / 2
-        parts.push(`<text x="${mx}" y="${my - 6}" text-anchor="middle" font-size="11" fill="${edge.color}" opacity="0.8" font-family="${theme.node.fontFamily}">${edge.label}</text>`)
+        parts.push(`<text class="mindmap-edge-label" x="${mx}" y="${my - 6}" text-anchor="middle" font-size="11" fill="${edge.color}" opacity="0.8">${edge.label}</text>`)
       }
     }
   }
@@ -82,12 +90,13 @@ export function buildExportSVG(
   for (const node of nodes) {
     const nx = node.x
     const ny = node.y
+    const branchAttr = node.branchIndex !== undefined ? ` data-branch-index="${node.branchIndex}"` : ''
 
     if (node.depth === 0) {
       const { fontSize, fontWeight, fontFamily, textColor } = theme.root
       const bgColor = theme.root.bgColor
-      parts.push(`<g transform="translate(${nx}, ${ny})">`)
-      parts.push(`<rect x="${-node.width / 2}" y="${-node.height / 2}" width="${node.width}" height="${node.height}" rx="${node.height / 2}" ry="${node.height / 2}" fill="${bgColor}"/>`)
+      parts.push(`<g class="mindmap-node-g mindmap-node-root" transform="translate(${nx}, ${ny})"${branchAttr}>`)
+      parts.push(`<rect class="mindmap-node-bg" x="${-node.width / 2}" y="${-node.height / 2}" width="${node.width}" height="${node.height}" rx="${node.height / 2}" ry="${node.height / 2}" fill="${bgColor}"/>`)
       parts.push(buildSvgNodeTextString(node.text, fontSize, fontWeight, fontFamily, textColor, node.taskStatus, node.remark, plugins, theme.highlight.textColor, theme.highlight.bgColor, pngSafe))
       // Plugin: export node decorations
       if (plugins && plugins.length > 0) {
@@ -100,9 +109,9 @@ export function buildExportSVG(
       const textW = node.width - theme.node.paddingH * 2
       const underlineY = fontSize / 2 + 4
 
-      parts.push(`<g transform="translate(${nx}, ${ny})">`)
+      parts.push(`<g class="mindmap-node-g mindmap-node-child" transform="translate(${nx}, ${ny})"${branchAttr}>`)
       parts.push(buildSvgNodeTextString(node.text, fontSize, fontWeight, theme.node.fontFamily, theme.node.textColor, node.taskStatus, node.remark, plugins, theme.highlight.textColor, theme.highlight.bgColor, pngSafe))
-      parts.push(`<line x1="${-textW / 2}" y1="${underlineY}" x2="${textW / 2}" y2="${underlineY}" stroke="${node.color}" stroke-width="2.5" stroke-linecap="round"/>`)
+      parts.push(`<line class="mindmap-node-underline" x1="${-textW / 2}" y1="${underlineY}" x2="${textW / 2}" y2="${underlineY}" stroke="${node.color}"/>`)
       // Plugin: export node decorations
       if (plugins && plugins.length > 0) {
         parts.push(runExportNodeDecoration(plugins, node, theme, plugins, pngSafe))

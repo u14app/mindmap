@@ -26,6 +26,7 @@ interface InternalNode {
   parentId?: string
   remark?: string
   taskStatus?: TaskStatus
+  branchIndex?: number
   // Plugin extension fields (carried from MindMapData)
   dottedLine?: boolean
   multiLineContent?: string[]
@@ -88,6 +89,7 @@ function buildInternal(
   parentId?: string,
   plugins?: MindMapPlugin[],
   layoutCtx?: LayoutContext,
+  branchIndex?: number,
 ): InternalNode {
   const isRoot = depth === 0
   const isLevel1 = depth === 1
@@ -130,7 +132,8 @@ function buildInternal(
     const childColor = isRoot
       ? BRANCH_COLORS[i % BRANCH_COLORS.length]
       : nodeColor
-    return buildInternal(child, depth + 1, depth === 0 ? side : side, childColor, data.id, plugins, layoutCtx)
+    const childBranchIndex = isRoot ? i % BRANCH_COLORS.length : branchIndex
+    return buildInternal(child, depth + 1, depth === 0 ? side : side, childColor, data.id, plugins, layoutCtx, childBranchIndex)
   })
 
   return {
@@ -148,6 +151,7 @@ function buildInternal(
     parentId,
     remark: data.remark,
     taskStatus: data.taskStatus,
+    branchIndex,
     // Plugin extension fields
     dottedLine: data.dottedLine,
     multiLineContent: data.multiLineContent,
@@ -203,6 +207,7 @@ function collectNodes(node: InternalNode, result: LayoutNode[]): void {
     parentId: node.parentId,
     remark: node.remark,
     taskStatus: node.taskStatus,
+    branchIndex: node.branchIndex,
     // Plugin extension fields
     dottedLine: node.dottedLine,
     multiLineContent: node.multiLineContent,
@@ -299,12 +304,14 @@ export function layoutMindMap(
   )
 
   const rightNodes = rightChildren.map((child, i) => {
-    const color = colorMap?.[child.id] ?? BRANCH_COLORS[i % BRANCH_COLORS.length]
-    return buildInternal(child, 1, 'right', color, data.id, plugins, layoutCtx)
+    const branchIdx = i % BRANCH_COLORS.length
+    const color = colorMap?.[child.id] ?? BRANCH_COLORS[branchIdx]
+    return buildInternal(child, 1, 'right', color, data.id, plugins, layoutCtx, branchIdx)
   })
   const leftNodes = leftChildren.map((child, i) => {
-    const color = colorMap?.[child.id] ?? BRANCH_COLORS[((direction === 'left' ? 0 : midpoint) + i) % BRANCH_COLORS.length]
-    return buildInternal(child, 1, 'left', color, data.id, plugins, layoutCtx)
+    const branchIdx = ((direction === 'left' ? 0 : midpoint) + i) % BRANCH_COLORS.length
+    const color = colorMap?.[child.id] ?? BRANCH_COLORS[branchIdx]
+    return buildInternal(child, 1, 'left', color, data.id, plugins, layoutCtx, branchIdx)
   })
 
   rootNode.children = [...rightNodes, ...leftNodes]
