@@ -127,6 +127,25 @@ html {
 .landing-text-editor.mindmap-text-editor .hl-root { color: #0f172a; font-weight: 700; }
 .landing-text-editor.mindmap-text-editor .hl-task-pending { color: #94a3b8; }
 
+@media (prefers-color-scheme: dark) {
+  .editor-scroll::-webkit-scrollbar-thumb {
+    background: #475569;
+  }
+  .landing-text-editor.mindmap-text-editor {
+    color: #cbd5e1;
+  }
+  .landing-text-editor.mindmap-text-editor .hl-op { color: #22d3ee; }
+  .landing-text-editor.mindmap-text-editor .hl-cmt { color: #94a3b8; font-style: italic; }
+  .landing-text-editor.mindmap-text-editor .hl-str { color: #4ade80; }
+  .landing-text-editor.mindmap-text-editor .hl-num { color: #fbbf24; }
+  .landing-text-editor.mindmap-text-editor .hl-fn { color: #60a5fa; }
+  .landing-text-editor.mindmap-text-editor .hl-kw { color: #c084fc; }
+  .landing-text-editor.mindmap-text-editor .hl-attr { color: #fb923c; }
+  .landing-text-editor.mindmap-text-editor .hl-tag { color: #fb7185; }
+  .landing-text-editor.mindmap-text-editor .hl-root { color: #f1f5f9; font-weight: 700; }
+  .landing-text-editor.mindmap-text-editor .hl-task-pending { color: #64748b; }
+}
+
 /* Float animation for decorative elements */
 @keyframes float {
   0%, 100% { transform: translateY(0); }
@@ -139,4 +158,11 @@ html {
 
 .animate-float-delayed {
   animation: float 4s ease-in-out 1s infinite;
+}
+
+/* Live page — full viewport */
+.live-page {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }

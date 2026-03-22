@@ -1,48 +1,17 @@
 import {
   useState,
-  useRef,
   useEffect,
   useCallback,
 } from "react";
-import { MindMap, allPlugins } from "../components/MindMap";
-import type { MindMapRef } from "../components/MindMap";
-import { MindMapTextEditor } from "../components/MindMap/components/MindMapTextEditor";
+import MindMapPlayground from "../components/MindMapPlayground";
 import { version } from "../../package.json";
 import "../App.css";
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const DEFAULT_MARKDOWN = `Open MindMap
-- Getting Started
-  - Installation
-    > npm install @xiangfa/mindmap
-  - Quick Setup
-  - Configuration
-- Core Features
-  - [x] Markdown Syntax
-  - [x] Real-time Rendering
-  - [-] AI Generation
-  - [ ] Plugin System
-- Integrations
-  - React
-  - TypeScript
-  - Tailwind CSS
-- Use Cases
-  - Project Planning
-  - Knowledge Base
-  - Brainstorming`;
 
 // ---------------------------------------------------------------------------
 // LandingPage Component
 // ---------------------------------------------------------------------------
 
 function LandingPage() {
-  const mindMapRef = useRef<MindMapRef>(null);
-  const [markdown, setMarkdown] = useState(DEFAULT_MARKDOWN);
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
   const [navScrolled, setNavScrolled] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -79,67 +48,6 @@ function LandingPage() {
     setTimeout(() => setCopied(false), 2000);
   }, []);
 
-  // ---- AI Generation ----
-  const handleAIGenerate = useCallback(async () => {
-    if (!aiPrompt.trim() || isGenerating) return;
-
-    setIsGenerating(true);
-
-    try {
-      const response = await fetch(
-        `https://open-mindmap-ai.u14.app/api/mindmap?text=${encodeURIComponent(aiPrompt)}`,
-      );
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let accumulated = "";
-
-      while (reader) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        accumulated += chunk;
-        const clean = accumulated
-          .replace(/<think>[\s\S]*?<\/think>/g, "")
-          .replace(/<think>[\s\S]*$/, "")
-          .replace(/^```(?:markdown)?\n?/, "")
-          .replace(/\n?```$/, "");
-        mindMapRef.current?.setMarkdown(clean);
-        setMarkdown(clean);
-      }
-
-      // Final cleanup
-      const finalMarkdown = accumulated
-        .replace(/<think>[\s\S]*?<\/think>/g, "")
-        .replace(/<think>[\s\S]*$/, "")
-        .replace(/^```(?:markdown)?\n?/, "")
-        .replace(/\n?```$/, "");
-      setMarkdown(finalMarkdown);
-      mindMapRef.current?.setMarkdown(finalMarkdown);
-    } catch (error) {
-      console.error("AI generation failed:", error);
-    } finally {
-      setIsGenerating(false);
-      setAiPrompt("");
-    }
-  }, [aiPrompt, isGenerating]);
-
-  // ---- Handle Enter key in AI input ----
-  const handleAIKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        handleAIGenerate();
-      }
-    },
-    [handleAIGenerate],
-  );
-
   // =========================================================================
   // Render
   // =========================================================================
@@ -151,15 +59,15 @@ function LandingPage() {
       <nav
         className={`fixed top-0 w-full z-50 glass-effect border-b transition-all duration-300 ${
           navScrolled
-            ? "bg-white/95 border-surface-container-high shadow-sm"
-            : "bg-white/80 border-surface-container-high/50"
+            ? "bg-white/95 dark:bg-slate-900/95 border-surface-container-high dark:border-slate-700 shadow-sm"
+            : "bg-white/80 dark:bg-slate-900/80 border-surface-container-high/50 dark:border-slate-700/50"
         }`}
       >
         <div className="flex justify-between items-center px-4 md:px-6 py-3 max-w-7xl mx-auto">
           <div className="flex">
             <a
               href="#/"
-              className="text-lg font-bold tracking-tight text-slate-900 flex items-center gap-2 no-underline"
+              className="text-lg font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2 no-underline"
             >
               <span className="w-7 h-7 rounded-lg flex items-center justify-center text-white">
                 <img src="/logo.png" className="scale-150" alt="logo" />
@@ -167,17 +75,17 @@ function LandingPage() {
               <span className="hidden sm:block">Open MindMap</span>
             </a>
             <div className="flex ml-10 items-center gap-8 text-[13px] font-medium">
-              <a className="text-slate-900" href="#features">
+              <a className="text-slate-900 dark:text-white" href="#features">
                 Home
               </a>
               <a
-                className="text-slate-500 hover:text-slate-900 transition-colors"
+                className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
                 href="#/docs"
               >
                 Docs
               </a>
               <a
-                className="text-slate-500 hover:text-slate-900 transition-colors"
+                className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
                 href="https://github.com/u14app/mindmap"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -188,7 +96,7 @@ function LandingPage() {
           </div>
           <div className="hidden md:flex items-center gap-4">
             <a
-              href="#demo"
+              href="#/live"
               className="bg-primary text-white px-4 py-1.5 rounded-full text-[13px] font-semibold transition-all hover:bg-primary/90 hover:scale-105"
             >
               Get Started
@@ -205,7 +113,7 @@ function LandingPage() {
         {/* Hero Section                                                     */}
         {/* --------------------------------------------------------------- */}
         <section className="max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-16 text-center">
-          <div className="hero-animate inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-[11px] font-bold tracking-wider uppercase mb-6 md:mb-8">
+          <div className="hero-animate inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-[11px] font-bold tracking-wider uppercase mb-6 md:mb-8">
             <span className="material-symbols-outlined text-[14px]">
               terminal
             </span>
@@ -218,7 +126,7 @@ function LandingPage() {
             Mindmap for React.
           </h1>
 
-          <p className="hero-animate-delayed text-base md:text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed mb-8 md:mb-12 font-medium">
+          <p className="hero-animate-delayed text-base md:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed mb-8 md:mb-12 font-medium">
             Transform complex mental models into structured visual systems with
             natural language. Open source, extensible, and built for the modern
             web.
@@ -248,13 +156,13 @@ function LandingPage() {
           <div className="hero-animate-delayed-2 flex flex-col sm:flex-row items-center justify-center gap-3 md:gap-4">
             <a
               href="#demo"
-              className="w-full sm:w-auto bg-slate-900 text-white px-8 py-3 md:py-3.5 rounded-full text-sm md:text-base font-semibold transition-all hover:bg-slate-800 hover:scale-[1.02] text-center"
+              className="w-full sm:w-auto bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-8 py-3 md:py-3.5 rounded-full text-sm md:text-base font-semibold transition-all hover:bg-slate-800 dark:hover:bg-slate-100 hover:scale-[1.02] text-center"
             >
               Start Building
             </a>
             <a
               href="#demo"
-              className="w-full sm:w-auto bg-white text-slate-900 border border-slate-200 px-8 py-3 md:py-3.5 rounded-full text-sm md:text-base font-semibold transition-all hover:bg-slate-50 hover:scale-[1.02] text-center"
+              className="w-full sm:w-auto bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 px-8 py-3 md:py-3.5 rounded-full text-sm md:text-base font-semibold transition-all hover:bg-slate-50 dark:hover:bg-slate-700 hover:scale-[1.02] text-center"
             >
               View Demo
             </a>
@@ -269,83 +177,7 @@ function LandingPage() {
           className="max-w-7xl mx-auto px-4 md:px-6 mb-20 md:mb-40"
           data-animate
         >
-          <div className="relative bg-white rounded-2xl shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] overflow-hidden border border-slate-200/60">
-            <div className="grid grid-cols-1 lg:grid-cols-12 lg:min-h-[720px]">
-              {/* Left: Editor Panel */}
-              <div className="lg:col-span-4 bg-slate-50 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-100">
-                <div className="p-4 md:p-5 border-b border-slate-200/50 bg-white flex items-center justify-between">
-                  <div className="flex gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-slate-200" />
-                    <div className="w-3 h-3 rounded-full bg-slate-200" />
-                    <div className="w-3 h-3 rounded-full bg-slate-200" />
-                  </div>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                    Workspace
-                  </span>
-                </div>
-
-                <div className="font-mono text-[12px] md:text-[13px] leading-relaxed flex-grow overflow-auto editor-scroll max-h-[240px] lg:max-h-none">
-                  <MindMapTextEditor
-                    value={markdown}
-                    onChange={(text) => {
-                      setMarkdown(text);
-                      mindMapRef.current?.setMarkdown(text);
-                    }}
-                    className="landing-text-editor"
-                  />
-                </div>
-
-                {/* AI Command Bar */}
-                <div className="p-3 md:p-4 bg-white border-t border-slate-100">
-                  <div
-                    className={`flex items-center gap-2 md:gap-3 bg-slate-50 border rounded-full p-2 transition-all ${
-                      isGenerating
-                        ? "border-primary/30 ring-2 ring-primary/10"
-                        : "border-slate-200 focus-within:ring-2 ring-primary/10"
-                    }`}
-                  >
-                    <input
-                      className="bg-transparent border-none focus:ring-0 focus:outline-none flex-grow text-sm font-medium placeholder:text-slate-400 min-w-0"
-                      placeholder="Ask AI to generate a mind map..."
-                      type="text"
-                      value={aiPrompt}
-                      onChange={(e) => setAiPrompt(e.target.value)}
-                      onKeyDown={handleAIKeyDown}
-                      disabled={isGenerating}
-                    />
-                    <button
-                      onClick={handleAIGenerate}
-                      disabled={isGenerating || !aiPrompt.trim()}
-                      className="w-8 h-8 rounded-xl bg-slate-900 flex items-center justify-center text-white shrink-0 transition-all hover:bg-primary disabled:opacity-50"
-                    >
-                      {isGenerating ? (
-                        <span className="material-symbols-outlined text-[16px] animate-spin">
-                          progress_activity
-                        </span>
-                      ) : (
-                        <span className="material-symbols-outlined text-[16px]">
-                          bolt
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right: Visualization Canvas */}
-              <div className="lg:col-span-8 bg-white relative overflow-hidden min-h-[400px] lg:min-h-0">
-                <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px] opacity-40" />
-                <div className="demo-mindmap-container relative">
-                  <MindMap
-                    ref={mindMapRef}
-                    markdown={markdown}
-                    plugins={allPlugins}
-                    theme="light"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          <MindMapPlayground />
         </section>
 
         {/* --------------------------------------------------------------- */}
@@ -356,39 +188,39 @@ function LandingPage() {
           className="max-w-7xl mx-auto px-4 md:px-6 mb-20 md:mb-40"
           data-animate
         >
-          <div className="bg-slate-50 rounded-2xl p-6 md:p-16 border border-slate-100 flex flex-col lg:flex-row items-center gap-8 lg:gap-16 overflow-hidden relative">
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 md:p-16 border border-slate-100 dark:border-slate-700 flex flex-col lg:flex-row items-center gap-8 lg:gap-16 overflow-hidden relative">
             <div className="flex-1 z-10">
               <span className="text-primary font-bold text-[11px] uppercase tracking-widest mb-4 block">
                 Core Engine
               </span>
-              <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 mb-4 md:mb-6">
+              <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4 md:mb-6">
                 Real-time AI Streaming.
               </h2>
-              <p className="text-base md:text-lg text-slate-500 leading-relaxed mb-6 md:mb-8">
+              <p className="text-base md:text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-6 md:mb-8">
                 Experience zero-latency visualization. As your LLM generates
                 tokens, Open MindMap constructs the layout in real-time,
                 handling thousands of nodes with pure SVG efficiency.
               </p>
               <ul className="space-y-4">
-                <li className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                <li className="flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
                   <span className="material-symbols-outlined text-primary text-[20px]">
                     check_circle
                   </span>
                   Sub-10ms Layout Recalculation
                 </li>
-                <li className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                <li className="flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
                   <span className="material-symbols-outlined text-primary text-[20px]">
                     check_circle
                   </span>
                   Native Streaming Support
                 </li>
-                <li className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                <li className="flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
                   <span className="material-symbols-outlined text-primary text-[20px]">
                     check_circle
                   </span>
                   OpenAI-Compatible API
                 </li>
-                <li className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                <li className="flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
                   <span className="material-symbols-outlined text-primary text-[20px]">
                     check_circle
                   </span>
@@ -399,7 +231,7 @@ function LandingPage() {
             <div className="flex-1 relative">
               <div className="relative w-full aspect-square flex items-center justify-center">
                 <div className="absolute inset-0 bg-primary/5 rounded-full animate-pulse" />
-                <div className="relative bg-white p-8 rounded-3xl shadow-xl border border-primary/10">
+                <div className="relative bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border border-primary/10">
                   <div className="space-y-3">
                     <div className="h-2 w-48 bg-primary/20 rounded-full overflow-hidden">
                       <div
@@ -429,10 +261,10 @@ function LandingPage() {
           data-animate
         >
           <div className="text-center mb-10 md:mb-16">
-            <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 mb-4">
+            <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">
               Everything you need.
             </h2>
-            <p className="text-base md:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed font-medium">
+            <p className="text-base md:text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
               A complete mind-mapping toolkit — zero dependencies, pure SVG,
               keyboard-first, and mobile-ready.
             </p>
@@ -497,15 +329,15 @@ function LandingPage() {
             ].map((f) => (
               <div
                 key={f.title}
-                className="bg-white rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-shadow duration-300"
+                className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)] transition-shadow duration-300"
               >
                 <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center mb-4">
                   <span className="material-symbols-outlined text-primary text-[20px]">
                     {f.icon}
                   </span>
                 </div>
-                <div className="font-bold text-slate-900 mb-1">{f.title}</div>
-                <p className="text-sm text-slate-500 leading-relaxed">
+                <div className="font-bold text-slate-900 dark:text-white mb-1">{f.title}</div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   {f.desc}
                 </p>
               </div>
@@ -525,10 +357,10 @@ function LandingPage() {
             <span className="text-primary font-bold text-[11px] uppercase tracking-widest mb-4 block">
               Extensible
             </span>
-            <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 mb-4">
+            <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4">
               Extend with Plugins.
             </h2>
-            <p className="text-base md:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed font-medium">
+            <p className="text-base md:text-lg text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed font-medium">
               7 built-in plugins extend the core syntax. Mix and match, or build
               your own.
             </p>
@@ -580,7 +412,7 @@ function LandingPage() {
             ].map((p) => (
               <div
                 key={p.name}
-                className="bg-slate-50 rounded-xl p-5 hover:bg-white hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all duration-300 group"
+                className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 hover:bg-white dark:hover:bg-slate-800 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_4px_16px_rgba(0,0,0,0.2)] transition-all duration-300 group"
               >
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
@@ -588,10 +420,10 @@ function LandingPage() {
                       {p.icon}
                     </span>
                   </div>
-                  <span className="font-bold text-slate-900">{p.name}</span>
+                  <span className="font-bold text-slate-900 dark:text-white">{p.name}</span>
                 </div>
-                <p className="text-sm text-slate-500 mb-3">{p.desc}</p>
-                <pre className="text-[12px] font-mono text-slate-600 bg-white rounded-lg p-3 leading-relaxed whitespace-pre-wrap">
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">{p.desc}</p>
+                <pre className="text-[12px] font-mono text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900 rounded-lg p-3 leading-relaxed whitespace-pre-wrap">
                   {p.syntax}
                 </pre>
               </div>
@@ -609,12 +441,12 @@ function LandingPage() {
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
             <div>
-              <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 mb-4 md:mb-6">
+              <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4 md:mb-6">
                 Write Markdown.
                 <br />
                 See Mind Maps.
               </h2>
-              <p className="text-base md:text-lg text-slate-500 leading-relaxed mb-6 md:mb-8">
+              <p className="text-base md:text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-6 md:mb-8">
                 Use familiar Markdown syntax to describe your ideas. Open
                 MindMap parses it in real-time and renders a beautiful,
                 interactive visualization.
@@ -630,7 +462,7 @@ function LandingPage() {
                 ].map((item) => (
                   <li
                     key={item}
-                    className="flex items-start gap-3 text-sm font-medium text-slate-700"
+                    className="flex items-start gap-3 text-sm font-medium text-slate-700 dark:text-slate-300"
                   >
                     <span className="material-symbols-outlined text-primary text-[18px] mt-0.5 shrink-0">
                       check
@@ -682,29 +514,29 @@ function LandingPage() {
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
             <div>
-              <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 mb-4 md:mb-6">
+              <h2 className="text-2xl md:text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-4 md:mb-6">
                 Built for the React Ecosystem.
               </h2>
-              <p className="text-base md:text-lg text-slate-500 leading-relaxed mb-6 md:mb-8">
+              <p className="text-base md:text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-6 md:mb-8">
                 Drop a powerful mind-mapping engine into your application with a
                 single component. Fully controlled, typed, and extensible with a
                 rich plugin system.
               </p>
               <div className="grid grid-cols-2 gap-8">
                 <div>
-                  <div className="font-bold text-slate-900 mb-1">
+                  <div className="font-bold text-slate-900 dark:text-white mb-1">
                     TypeScript Native
                   </div>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     First-class type definitions for every node and edge
                     property.
                   </p>
                 </div>
                 <div>
-                  <div className="font-bold text-slate-900 mb-1">
+                  <div className="font-bold text-slate-900 dark:text-white mb-1">
                     Plugin System
                   </div>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
                     Extend syntax with tags, cross-links, LaTeX, folding, and
                     more.
                   </p>
@@ -746,7 +578,7 @@ function LandingPage() {
         {/* Social Proof Section                                             */}
         {/* --------------------------------------------------------------- */}
         <section
-          className="max-w-7xl mx-auto px-4 md:px-6 mb-20 md:mb-40 text-center border-t border-slate-100 pt-16 md:pt-24"
+          className="max-w-7xl mx-auto px-4 md:px-6 mb-20 md:mb-40 text-center border-t border-slate-100 dark:border-slate-800 pt-16 md:pt-24"
           data-animate
         >
           <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-slate-400 mb-10 md:mb-16">
@@ -808,14 +640,14 @@ function LandingPage() {
       {/* ================================================================= */}
       {/* Footer                                                            */}
       {/* ================================================================= */}
-      <footer className="w-full py-8 px-4 md:px-8 bg-white border-t border-slate-100">
+      <footer className="w-full py-8 px-4 md:px-8 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-12 md:mb-16">
             <div className="col-span-2 md:col-span-1">
-              <div className="text-lg font-bold tracking-tight text-slate-900 mb-6">
+              <div className="text-lg font-bold tracking-tight text-slate-900 dark:text-white mb-6">
                 Open MindMap
               </div>
-              <p className="text-sm text-slate-500 leading-relaxed font-medium">
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
                 Open Source & Community Driven.
                 <br />
                 Built for the modern web.
@@ -825,7 +657,7 @@ function LandingPage() {
               <h5 className="font-bold text-[11px] mb-6 uppercase tracking-widest text-slate-400">
                 Engineering
               </h5>
-              <ul className="space-y-4 text-[13px] font-semibold text-slate-600">
+              <ul className="space-y-4 text-[13px] font-semibold text-slate-600 dark:text-slate-400">
                 <li>
                   <a
                     className="hover:text-primary transition-colors"
@@ -864,7 +696,7 @@ function LandingPage() {
               <h5 className="font-bold text-[11px] mb-6 uppercase tracking-widest text-slate-400">
                 Community
               </h5>
-              <ul className="space-y-4 text-[13px] font-semibold text-slate-600">
+              <ul className="space-y-4 text-[13px] font-semibold text-slate-600 dark:text-slate-400">
                 <li>
                   <a className="hover:text-primary transition-colors" href="#">
                     Discord
@@ -896,7 +728,7 @@ function LandingPage() {
               <h5 className="font-bold text-[11px] mb-6 uppercase tracking-widest text-slate-400">
                 Legal
               </h5>
-              <ul className="space-y-4 text-[13px] font-semibold text-slate-600">
+              <ul className="space-y-4 text-[13px] font-semibold text-slate-600 dark:text-slate-400">
                 <li>
                   <a className="hover:text-primary transition-colors" href="#">
                     Privacy
@@ -915,7 +747,7 @@ function LandingPage() {
               </ul>
             </div>
           </div>
-          <div className="flex flex-col md:flex-row justify-between items-center pt-6 border-t border-slate-100">
+          <div className="flex flex-col md:flex-row justify-between items-center pt-6 border-t border-slate-100 dark:border-slate-800">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
               &copy; 2026 Open MindMap. Open Source.
             </p>

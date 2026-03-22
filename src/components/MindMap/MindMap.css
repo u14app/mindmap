@@ -348,8 +348,8 @@
 .mindmap-ctx-divider {
   height: 0;
   border-top: 1px solid;
+  border-color: var(--mindmap-ctx-border);
   margin: 4px 8px;
-  opacity: 0.3;
 }
 
 .mindmap-ctx-submenu {

@@ -19,7 +19,7 @@ English | [中文](README.zh-CN.md)
 
 ---
 
-![Open MindMap](/public/screenshot.png)
+![Open MindMap](https://github.com/u14app/mindmap/blob/main/public/screenshot.png)
 
 ## Features
 
@@ -132,6 +132,18 @@ Display a mind map without allowing edits — perfect for presentations, documen
 
 In readonly mode, users can still pan, zoom, and select nodes, but cannot create, edit, or delete nodes. The context menu hides editing actions (new root node, import) while keeping view-only actions (export, layout).
 
+### Text Editor Mode
+
+Pass the `MindMapTextEditor` component to enable a built-in text editing mode with syntax highlighting. Users can toggle between the visual mind map and a markdown text editor via a button in the bottom-right corner.
+
+```tsx
+import { MindMap, MindMapTextEditor } from "@xiangfa/mindmap";
+
+<MindMap markdown={markdown} textEditor={MindMapTextEditor} />
+```
+
+The text editor is opt-in and tree-shakeable — it is only bundled when you import and pass it. If omitted, the text mode toggle button is hidden.
+
 ### Dark Mode
 
 ```tsx
@@ -157,18 +169,59 @@ Target specific elements with semantic CSS classes:
 
 ```css
 /* Style all edges */
-.mindmap-edge { stroke-width: 3; }
+.mindmap-edge {
+  stroke-width: 3;
+}
 
 /* Style root node background */
-.mindmap-node-root .mindmap-node-bg { fill: #6c5ce7; }
+.mindmap-node-root .mindmap-node-bg {
+  fill: #6c5ce7;
+}
 ```
 
 Customize individual branch colors via `data-branch-index`:
 
 ```css
-.mindmap-edge[data-branch-index="0"] { stroke: #e74c3c; }
-.mindmap-edge[data-branch-index="1"] { stroke: #2ecc71; }
+.mindmap-edge[data-branch-index="0"] {
+  stroke: #e74c3c;
+}
+.mindmap-edge[data-branch-index="1"] {
+  stroke: #2ecc71;
+}
 ```
+
+#### CSS Variable Groups
+
+| Group | Variables |
+|-------|-----------|
+| Canvas | `--mindmap-canvas-bg` |
+| Root Node | `--mindmap-root-bg`, `--mindmap-root-text`, `--mindmap-root-font-size`, `--mindmap-root-font-weight`, `--mindmap-root-font-family` |
+| Child Nodes | `--mindmap-node-text`, `--mindmap-node-font-size`, `--mindmap-node-font-weight`, `--mindmap-node-font-family` |
+| Level 1 | `--mindmap-level1-font-size`, `--mindmap-level1-font-weight` |
+| Edges | `--mindmap-edge-width` |
+| Selection | `--mindmap-selection-stroke`, `--mindmap-selection-fill` |
+| Highlight | `--mindmap-highlight-text`, `--mindmap-highlight-bg` |
+| Add Button | `--mindmap-addbtn-fill`, `--mindmap-addbtn-hover`, `--mindmap-addbtn-icon` |
+| Controls | `--mindmap-controls-bg`, `--mindmap-controls-text`, `--mindmap-controls-hover` |
+| Context Menu | `--mindmap-ctx-bg`, `--mindmap-ctx-text`, `--mindmap-ctx-hover`, `--mindmap-ctx-border`, `--mindmap-ctx-shadow` |
+| Branch Colors | `--mindmap-branch-0` through `--mindmap-branch-9` |
+
+#### CSS Class Selectors
+
+| Class | Target |
+|-------|--------|
+| `.mindmap-node-root` | Root node group |
+| `.mindmap-node-child` | Child node group |
+| `.mindmap-node-bg` | Node background rect |
+| `.mindmap-node-text` | Node text element |
+| `.mindmap-node-underline` | Child node underline |
+| `.mindmap-edge` | Connection line |
+| `.mindmap-edge-label` | Edge label text |
+| `.mindmap-add-btn` | Add child button |
+| `.mindmap-fold-btn` | Fold/unfold toggle |
+| `.mindmap-tag` | Tag badge |
+
+Exported SVGs embed a `<style>` block with resolved CSS values and include the same semantic classes and `data-branch-index` attributes, so standalone SVGs render correctly without external CSS.
 
 > See [Custom Styling Guide](docs/Custom%20Styling.md) for the full list of 30+ CSS variables, class selectors, and examples.
 
@@ -370,6 +423,22 @@ Format text inside any node:
 [link text](https://example.com)
 ```
 
+### Links & Images
+
+Embed clickable hyperlinks and images within nodes:
+
+```
+Machine Learning
+- [Wikipedia](https://en.wikipedia.org/wiki/ML)
+- Architecture Overview ![](./arch.png)
+- Resources
+  - [Paper](https://arxiv.org/xxx)
+  - ![diagram](./flow.png)
+```
+
+- `[text](url)` — Node text becomes a clickable hyperlink.
+- `![alt](path)` — Embeds an image within a node.
+
 ### Task Status
 
 Add checkboxes to track task state:
@@ -389,6 +458,24 @@ Attach multi-line remarks to a node using `>`:
   > This is a remark line
   > It can span multiple lines
 ```
+
+### Comments
+
+Use `%%` to add comments that are only visible in the text editor and will not be rendered in the mind map:
+
+```
+%% This is a comment, it won't appear in the mind map
+Machine Learning
+%% Core learning paradigms
+- Supervised Learning
+  - Classification
+  - Regression
+- Unsupervised Learning
+  %% TODO: add more examples
+  - Clustering
+```
+
+A line is treated as a comment only when `%%` appears at the beginning of the line (optionally preceded by whitespace). Inline occurrences like `test%%demo` are not treated as comments.
 
 ### Frontmatter _(plugin)_
 
@@ -484,6 +571,7 @@ Render mathematical formulas (requires [KaTeX](https://katex.org/)):
 | `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | Show/hide zoom controls                                                   |
 | `ai`               | `MindMapAIConfig`               | -            | AI generation configuration (API endpoint, key, model, attachments)       |
 | `plugins`          | `MindMapPlugin[]`               | `allPlugins` | Plugins to enable for extended syntax                                     |
+| `textEditor`       | `ComponentType`                 | -            | Pass `MindMapTextEditor` to enable text editing mode. Opt-in for tree-shaking. |
 | `onDataChange`     | `(data: MindMapData[]) => void` | -            | Called when the tree is modified by user interaction                      |
 
 ### ToolbarConfig
@@ -610,6 +698,9 @@ import {
   tagsPlugin,
   crossLinkPlugin,
   latexPlugin,
+
+  // Text Editor
+  MindMapTextEditor,            // opt-in text editor component
 } from "@xiangfa/mindmap";
 ```
 

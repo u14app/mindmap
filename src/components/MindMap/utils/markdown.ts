@@ -58,6 +58,12 @@ export function parseMarkdownList(md: string, plugins?: MindMapPlugin[]): MindMa
   while (i < lines.length) {
     const line = lines[i]
 
+    // Skip comment lines (lines starting with %%, optionally preceded by whitespace)
+    if (/^\s*%%/.test(line)) {
+      i++
+      continue
+    }
+
     // Step 2: Try plugin line matchers first
     const pluginResult = activePlugins && ctx ? runParseLine(activePlugins, line, i, ctx) : null
 
@@ -296,6 +302,7 @@ export function parseMarkdownList(md: string, plugins?: MindMapPlugin[]): MindMa
     id: 'md-0',
     text: normalized[0].text,
     children: [],
+    listRoot: true,
     ...(normalized[0].taskStatus ? { taskStatus: normalized[0].taskStatus } : {}),
     ...(normalized[0].remarkLines.length > 0 ? { remark: normalized[0].remarkLines.join('\n') } : {}),
   }
@@ -363,10 +370,11 @@ export function toMarkdownList(data: MindMapData, indent = 0, plugins?: MindMapP
   let result: string
 
   if (indent === 0) {
-    // Root node: no list prefix
+    // Root node: optionally with list prefix if originally written as "- Root"
     let text = data.text
     if (activePlugins) text = runSerializeNodeText(activePlugins, data, text)
-    result = text + '\n'
+    const prefix = data.listRoot ? '- ' : ''
+    result = prefix + text + '\n'
   } else {
     // Build task status prefix
     let taskPrefix = ''
@@ -422,8 +430,8 @@ export function parseMarkdownMultiRoot(md: string, plugins?: MindMapPlugin[]): M
     processedMd = runPreParseMarkdown(activePlugins, processedMd, ctx)
   }
 
-  // Remove empty lines — the mindmap syntax has no blank-line semantics
-  processedMd = processedMd.split('\n').filter(line => line.trim().length > 0).join('\n')
+  // Remove empty lines and comment lines — the mindmap syntax has no blank-line semantics
+  processedMd = processedMd.split('\n').filter(line => line.trim().length > 0 && !/^\s*%%/.test(line)).join('\n')
 
   // Split on blank lines (one or more empty lines)
   const blocks = processedMd.split(/\n[ \t]*\n/).filter((block) => block.trim())
@@ -496,8 +504,8 @@ export function parseMarkdownWithFrontMatter(
   const ctx = { lines: [] as string[], frontMatter: {} as Record<string, string> }
   let processedMd = runPreParseMarkdown(plugins, md, ctx)
 
-  // Remove empty lines — the mindmap syntax has no blank-line semantics
-  processedMd = processedMd.split('\n').filter(line => line.trim().length > 0).join('\n')
+  // Remove empty lines and comment lines — the mindmap syntax has no blank-line semantics
+  processedMd = processedMd.split('\n').filter(line => line.trim().length > 0 && !/^\s*%%/.test(line)).join('\n')
 
   const blockPlugins = plugins.map(p => ({
     ...p,

@@ -19,7 +19,7 @@
 
 ---
 
-![Open MindMap](/public/screenshot.png)
+![Open MindMap](https://github.com/u14app/mindmap/blob/main/public/screenshot.png)
 
 ## 特性
 
@@ -132,6 +132,18 @@ const markdown = `
 
 在只读模式下，用户仍可平移、缩放和选择节点，但不能创建、编辑或删除节点。右键菜单会隐藏编辑操作（新建根节点、导入），保留仅查看操作（导出、布局）。
 
+### 文本编辑器模式
+
+传入 `MindMapTextEditor` 组件以启用内置的文本编辑模式，支持语法高亮。用户可以通过右下角的按钮在可视化思维导图与 Markdown 文本编辑器之间切换。
+
+```tsx
+import { MindMap, MindMapTextEditor } from "@xiangfa/mindmap";
+
+<MindMap markdown={markdown} textEditor={MindMapTextEditor} />
+```
+
+文本编辑器是可选引入的，支持 tree-shaking — 只有在导入并传入该组件时才会被打包。如果省略，文本模式切换按钮将被隐藏。
+
 ### 暗色模式
 
 ```tsx
@@ -157,18 +169,59 @@ const markdown = `
 
 ```css
 /* 定制所有连线 */
-.mindmap-edge { stroke-width: 3; }
+.mindmap-edge {
+  stroke-width: 3;
+}
 
 /* 定制根节点背景 */
-.mindmap-node-root .mindmap-node-bg { fill: #6c5ce7; }
+.mindmap-node-root .mindmap-node-bg {
+  fill: #6c5ce7;
+}
 ```
 
 通过 `data-branch-index` 定制各分支颜色：
 
 ```css
-.mindmap-edge[data-branch-index="0"] { stroke: #e74c3c; }
-.mindmap-edge[data-branch-index="1"] { stroke: #2ecc71; }
+.mindmap-edge[data-branch-index="0"] {
+  stroke: #e74c3c;
+}
+.mindmap-edge[data-branch-index="1"] {
+  stroke: #2ecc71;
+}
 ```
+
+#### CSS 变量分组
+
+| 分组 | 变量 |
+|------|------|
+| 画布 | `--mindmap-canvas-bg` |
+| 根节点 | `--mindmap-root-bg`、`--mindmap-root-text`、`--mindmap-root-font-size`、`--mindmap-root-font-weight`、`--mindmap-root-font-family` |
+| 子节点 | `--mindmap-node-text`、`--mindmap-node-font-size`、`--mindmap-node-font-weight`、`--mindmap-node-font-family` |
+| 一级节点 | `--mindmap-level1-font-size`、`--mindmap-level1-font-weight` |
+| 连线 | `--mindmap-edge-width` |
+| 选中态 | `--mindmap-selection-stroke`、`--mindmap-selection-fill` |
+| 高亮 | `--mindmap-highlight-text`、`--mindmap-highlight-bg` |
+| 添加按钮 | `--mindmap-addbtn-fill`、`--mindmap-addbtn-hover`、`--mindmap-addbtn-icon` |
+| 控件 | `--mindmap-controls-bg`、`--mindmap-controls-text`、`--mindmap-controls-hover` |
+| 右键菜单 | `--mindmap-ctx-bg`、`--mindmap-ctx-text`、`--mindmap-ctx-hover`、`--mindmap-ctx-border`、`--mindmap-ctx-shadow` |
+| 分支颜色 | `--mindmap-branch-0` 至 `--mindmap-branch-9` |
+
+#### CSS 类选择器
+
+| 类名 | 目标 |
+|------|------|
+| `.mindmap-node-root` | 根节点分组 |
+| `.mindmap-node-child` | 子节点分组 |
+| `.mindmap-node-bg` | 节点背景矩形 |
+| `.mindmap-node-text` | 节点文本元素 |
+| `.mindmap-node-underline` | 子节点下划线 |
+| `.mindmap-edge` | 连接线 |
+| `.mindmap-edge-label` | 连线标签文本 |
+| `.mindmap-add-btn` | 添加子节点按钮 |
+| `.mindmap-fold-btn` | 折叠/展开切换按钮 |
+| `.mindmap-tag` | 标签徽章 |
+
+导出的 SVG 会嵌入一个包含已解析 CSS 值的 `<style>` 块，并包含相同的语义类名和 `data-branch-index` 属性，因此独立的 SVG 文件无需外部 CSS 即可正确渲染。
 
 > 完整的 30+ CSS 变量、class 选择器和示例请参阅 [自定义样式指南](docs/Custom%20Styling.md)。
 
@@ -370,6 +423,22 @@ function App() {
 [链接文本](https://example.com)
 ```
 
+### 链接和图片
+
+在节点中嵌入可点击的超链接和图片：
+
+```
+机器学习
+- [维基百科](https://zh.wikipedia.org/wiki/ML)
+- 架构概览 ![](./arch.png)
+- 资源
+  - [论文](https://arxiv.org/xxx)
+  - ![流程图](./flow.png)
+```
+
+- `[文本](url)` — 节点文本变为可点击的超链接。
+- `![替代文本](路径)` — 在节点内嵌入图片。
+
 ### 任务状态
 
 添加复选框以跟踪任务状态：
@@ -389,6 +458,24 @@ function App() {
   > 这是一行备注
   > 可以跨越多行
 ```
+
+### 注释
+
+使用 `%%` 添加注释，注释仅在文本编辑器中可见，不会在思维导图中渲染：
+
+```
+%% 这是注释，不会出现在思维导图中
+机器学习
+%% 核心学习范式
+- 监督学习
+  - 分类
+  - 回归
+- 无监督学习
+  %% TODO: 添加更多示例
+  - 聚类
+```
+
+只有当 `%%` 出现在行首（可以有前导空格）时，该行才被视为注释。行内出现的情况如 `test%%demo` 不会被当作注释处理。
 
 ### Frontmatter _（插件）_
 
@@ -484,6 +571,7 @@ theme: dark
 | `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | 显示/隐藏缩放控件                                    |
 | `ai`               | `MindMapAIConfig`               | -            | AI 生成配置（API 地址、密钥、模型、附件类型）        |
 | `plugins`          | `MindMapPlugin[]`               | `allPlugins` | 启用的扩展语法插件                                   |
+| `textEditor`       | `ComponentType`                 | -            | 传入 `MindMapTextEditor` 以启用文本编辑模式。可选引入，支持 tree-shaking。 |
 | `onDataChange`     | `(data: MindMapData[]) => void` | -            | 用户交互修改树时调用                                 |
 
 ### ToolbarConfig
@@ -610,6 +698,9 @@ import {
   tagsPlugin,
   crossLinkPlugin,
   latexPlugin,
+
+  // 文本编辑器
+  MindMapTextEditor,            // 可选的文本编辑器组件
 } from "@xiangfa/mindmap";
 ```
 

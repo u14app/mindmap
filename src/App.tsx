@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import LandingPage from "./pages/LandingPage";
 import DocsPage from "./pages/DocsPage";
+import LivePage from "./pages/LivePage";
 
 function App() {
   const [route, setRoute] = useState(window.location.hash);
@@ -14,6 +15,9 @@ function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
+  if (route.startsWith("#/live")) {
+    return <LivePage />;
+  }
   if (route.startsWith("#/docs")) {
     return <DocsPage />;
   }

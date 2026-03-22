@@ -60,6 +60,7 @@ function highlightInline(text: string): string {
 export function highlightMindmapHTML(code: string): string {
   const lines = code.split('\n')
   let inFrontmatter = false
+  let rootSeen = false
 
   return lines
     .map((line) => {
@@ -83,6 +84,12 @@ export function highlightMindmapHTML(code: string): string {
         return `<div>${esc(line)}</div>`
       }
 
+      // Comment lines (%% ...)
+      const commentMatch = line.match(/^(\s*)(%%.*)/)
+      if (commentMatch) {
+        return `<div>${esc(commentMatch[1])}${span('hl-cmt', commentMatch[2])}</div>`
+      }
+
       // Remark lines (> ...)
       const remarkMatch = line.match(/^(\s*)(>.*)/)
       if (remarkMatch) {
@@ -99,6 +106,8 @@ export function highlightMindmapHTML(code: string): string {
       const listMatch = line.match(/^(\s*)([-+]\.?\s)(.*)/)
       if (listMatch) {
         const [, indent, marker, text] = listMatch
+        const isRootLine = indent === '' && !rootSeen
+        if (indent === '') rootSeen = true
         let html = `${esc(indent)}${span('hl-op', marker)}`
 
         // Task markers
@@ -107,15 +116,20 @@ export function highlightMindmapHTML(code: string): string {
           const status = taskMatch[1]
           const cls = status === 'x' ? 'hl-str' : status === '-' ? 'hl-num' : 'hl-task-pending'
           html += `${span(cls, `[${status}] `)}`
-          html += highlightInline(text.slice(taskMatch[0].length))
+          html += isRootLine
+            ? `<span class="hl-root">${highlightInline(text.slice(taskMatch[0].length))}</span>`
+            : highlightInline(text.slice(taskMatch[0].length))
         } else {
-          html += highlightInline(text)
+          html += isRootLine
+            ? `<span class="hl-root">${highlightInline(text)}</span>`
+            : highlightInline(text)
         }
 
         return `<div>${html}</div>`
       }
 
       // Root node (no indent, no marker)
+      rootSeen = true
       return `<div><span class="hl-root">${esc(line)}</span></div>`
     })
     .join('')

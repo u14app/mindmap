@@ -20,6 +20,7 @@ export interface MindMapData {
   crossLinks?: CrossLink[]       // Plugin: cross-link
   collapsed?: boolean            // Plugin: folding
   placeholder?: boolean           // Streaming: empty placeholder node
+  listRoot?: boolean              // Root node uses list marker syntax (- Root)
 }
 
 export type LayoutDirection = 'left' | 'right' | 'both'

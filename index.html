@@ -16,7 +16,7 @@
     />
     <script>
       tailwind.config = {
-        darkMode: "class",
+        darkMode: "media",
         theme: {
           extend: {
             colors: {
@@ -118,6 +118,24 @@
       .code-glow {
         box-shadow: 0 0 40px rgba(0, 122, 255, 0.1);
       }
+      @media (prefers-color-scheme: dark) {
+        .hero-gradient {
+          background: radial-gradient(
+            circle at top center,
+            rgba(0, 122, 255, 0.06) 0%,
+            rgba(0, 0, 0, 0) 60%
+          );
+        }
+        .text-gradient {
+          background: linear-gradient(180deg, #f1f5f9 0%, #94a3b8 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .code-glow {
+          box-shadow: 0 0 40px rgba(0, 122, 255, 0.2);
+        }
+      }
       @keyframes shimmer {
         0% {
           transform: translateX(-100%);
@@ -128,7 +146,7 @@
       }
     </style>
   </head>
-  <body class="bg-background text-on-surface">
+  <body class="bg-white dark:bg-[#0f1117] text-on-surface dark:text-slate-300">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
