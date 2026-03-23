@@ -1,0 +1,163 @@
+# Open MindMap
+
+> A beautiful, zero-dependency, interactive mind map component for React. Natively supports AI stream output with Markdown list syntax and iOS-style UI. Pure SVG rendering, plugin system, dark mode, keyboard-first, and mobile optimized.
+
+- npm: [@xiangfa/mindmap](https://www.npmjs.com/package/@xiangfa/mindmap)
+- GitHub: [u14app/mindmap](https://github.com/u14app/mindmap)
+- License: Apache-2.0
+- React: >= 18
+
+## Installation
+
+```bash
+npm install @xiangfa/mindmap
+```
+
+Optional (for LaTeX math rendering):
+```bash
+npm install katex
+```
+
+## Quick Start
+
+```tsx
+import { MindMap } from "@xiangfa/mindmap";
+import "@xiangfa/mindmap/style.css";
+
+const markdown = `
+My Mind Map
+  - First Topic
+    - Subtopic A
+    - Subtopic B
+  - Second Topic
+`;
+
+function App() {
+  return <MindMap markdown={markdown} />;
+}
+```
+
+The component fills its parent container. Ensure the parent has explicit dimensions (width and height).
+
+## Core Concepts
+
+- **Markdown input**: Pass a markdown list string via the `markdown` prop. Indent with 2 spaces per level. Lines without leading `-` become root nodes. Blank lines separate multiple root trees.
+- **Data input**: Alternatively pass structured `MindMapData` objects via the `data` prop.
+- **AI streaming**: The component natively renders mind maps from streaming markdown. Feed tokens as they arrive from an LLM.
+- **Built-in AI generation**: Set the `ai` prop with an OpenAI-compatible endpoint to enable a natural language input bar. Supports text, image, and PDF attachments.
+- **Pure SVG**: All rendering uses SVG elements. No canvas, no external layout engines. Sharp at any zoom level.
+
+## Props
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| data | MindMapData \| MindMapData[] | required | Tree data |
+| markdown | string | - | Markdown list (overrides data) |
+| defaultDirection | 'left' \| 'right' \| 'both' | 'both' | Layout direction |
+| theme | 'light' \| 'dark' \| 'auto' | 'auto' | Color theme |
+| locale | string | auto | UI language |
+| messages | Partial\<MindMapMessages\> | - | Override UI strings |
+| readonly | boolean | false | Display-only mode |
+| toolbar | boolean \| ToolbarConfig | true | Show/hide controls |
+| ai | MindMapAIConfig | - | AI generation config |
+| plugins | MindMapPlugin[] | allPlugins | Plugins to enable |
+| textEditor | ComponentType | - | Pass MindMapTextEditor for text editing |
+| onDataChange | (data: MindMapData[]) => void | - | Change callback |
+
+## Ref Methods
+
+Access via `useRef<MindMapRef>`:
+
+- `exportToSVG()` — returns SVG string
+- `exportToPNG()` — returns Promise\<Blob\> (high-DPI PNG)
+- `exportToOutline()` — returns markdown list string
+- `getData()` / `setData(data)` — get/set tree data
+- `setMarkdown(md)` — parse markdown and replace tree
+- `fitView()` — reset zoom to fit all nodes
+- `setDirection(dir)` — change layout direction
+
+## Lightweight Viewer
+
+For read-only use cases where bundle size matters:
+
+```tsx
+import { MindMapViewer } from "@xiangfa/mindmap/viewer";
+import "@xiangfa/mindmap/style.css";
+
+<MindMapViewer markdown={markdown} />;
+```
+
+~48% smaller bundle. Supports themes, plugins, pan/zoom, fold toggle. No editing, drag-drop, AI, context menu, or export.
+
+## Plugin System
+
+7 built-in plugins (all enabled by default): frontmatter, dotted-line, folding, multi-line, tags, cross-link, latex.
+
+```tsx
+import { MindMap, foldingPlugin, tagsPlugin } from "@xiangfa/mindmap";
+<MindMap data={data} plugins={[foldingPlugin, tagsPlugin]} />;
+```
+
+Plugins extend ~20 hook points across parsing, serialization, layout, rendering, and export. See `MindMapPlugin` interface.
+
+## Extended Syntax
+
+- **Inline formatting**: `**bold**`, `*italic*`, `` `code` ``, `~~strikethrough~~`, `==highlight==`, `[link](url)`, `![alt](path)`
+- **Task status**: `[x]` done, `[ ]` todo, `[-]` in-progress
+- **Remarks**: `> remark text` under a node
+- **Comments**: `%% comment` (not rendered)
+- **Frontmatter** (plugin): YAML block with `direction` and `theme`
+- **Dotted lines** (plugin): `-.` instead of `-`
+- **Folding** (plugin): `+` instead of `-` for initially collapsed
+- **Multi-line** (plugin): `|` continuation lines
+- **Tags** (plugin): `#tag` at end of node text
+- **Cross-links** (plugin): `{#anchor}` and `-> {#target}`
+- **LaTeX** (plugin): `$...$` inline, `$$...$$` display (requires KaTeX)
+
+## Data Structure
+
+```ts
+interface MindMapData {
+  id: string;
+  text: string;
+  children?: MindMapData[];
+  remark?: string;
+  taskStatus?: "todo" | "doing" | "done";
+  dottedLine?: boolean;
+  multiLineContent?: string[];
+  tags?: string[];
+  anchorId?: string;
+  crossLinks?: CrossLink[];
+  collapsed?: boolean;
+}
+```
+
+## Custom Styling
+
+Override CSS custom properties on `.mindmap-container`:
+
+- Canvas: `--mindmap-canvas-bg`
+- Root node: `--mindmap-root-bg`, `--mindmap-root-text`, `--mindmap-root-font-size`, `--mindmap-root-font-weight`, `--mindmap-root-font-family`
+- Child nodes: `--mindmap-node-text`, `--mindmap-node-font-size`, `--mindmap-node-font-weight`, `--mindmap-node-font-family`
+- Edges: `--mindmap-edge-width`
+- Branch colors: `--mindmap-branch-0` through `--mindmap-branch-9`
+- 30+ CSS variables available. See docs/Custom Styling.md for full list.
+
+## Utility Exports
+
+```ts
+import {
+  parseMarkdownList, toMarkdownList,
+  parseMarkdownMultiRoot, toMarkdownMultiRoot,
+  parseInlineMarkdown, stripInlineMarkdown,
+  buildExportSVG, exportToPNG,
+  resolveMessages, detectLocale,
+  allPlugins, MindMapTextEditor, MindMapViewer,
+} from "@xiangfa/mindmap";
+```
+
+## Optional
+
+- [GitHub Repository](https://github.com/u14app/mindmap)
+- [npm Package](https://www.npmjs.com/package/@xiangfa/mindmap)
+- [Contributing Guide](https://github.com/u14app/mindmap/blob/main/CONTRIBUTING.md)

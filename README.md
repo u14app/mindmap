@@ -771,6 +771,14 @@ pnpm lint       # run linter
 
 Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) before submitting a pull request.
 
+## Community Support
+
+You can ask questions or share your thoughts and needs regarding Open MindMap in these communities.
+
+[LinuxDo](https://linux.do)
+
+[V2EX](https://www.v2ex.com)
+
 ## License
 
 [Apache-2.0](LICENSE)

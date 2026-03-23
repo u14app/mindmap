@@ -771,6 +771,14 @@ pnpm lint       # 运行代码检查
 
 欢迎贡献！请在提交 Pull Request 之前阅读我们的[贡献指南](CONTRIBUTING.md)。
 
+## 社区支持
+
+您可以在这些社区提问或分享您对 Open MindMap 的想法与需求
+
+[LinuxDo](https://linux.do)
+
+[V2EX](https://www.v2ex.com)
+
 ## 许可证
 
 [Apache-2.0](LICENSE)
