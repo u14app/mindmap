@@ -4,6 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@xiangfa/mindmap)](https://www.npmjs.com/package/@xiangfa/mindmap)
 [![npm downloads](https://img.shields.io/npm/dm/@xiangfa/mindmap)](https://www.npmjs.com/package/@xiangfa/mindmap)
+[![npm gzip size](https://deno.bundlejs.com/badge?q=@xiangfa/mindmap@0.6.5/viewer)](https://bundlejs.com/?q=%40xiangfa%2Fmindmap%400.6.5%2Fviewer)
 [![license](https://img.shields.io/npm/l/@xiangfa/mindmap)](./LICENSE)
 [![react](https://img.shields.io/badge/react-%E2%89%A518-blue)](https://react.dev)
 
@@ -35,6 +36,7 @@
 - **全屏模式** — 将组件扩展为全屏显示
 - **LaTeX 数学公式** — 渲染 `$...$` 行内公式和 `$$...$$` 块级公式（需安装 KaTeX）
 - **跨链接** — 通过 `{#anchor}` / `-> {#target}` 在任意节点间绘制连线
+- **轻量查看器** — 独立的只读组件（`MindMapViewer`），体积减少约 48%；通过 `@xiangfa/mindmap/viewer` 导入以获得最小打包体积
 - **只读模式** — 仅显示，支持平移/缩放/选择但不可编辑；适合演示和嵌入
 - **多根节点** — 在同一画布上构建多棵独立的树
 - **拖拽排序** — 拖拽重新排列兄弟节点；拖拽根节点的子节点跨越中线以重新平衡两侧
@@ -132,6 +134,26 @@ const markdown = `
 
 在只读模式下，用户仍可平移、缩放和选择节点，但不能创建、编辑或删除节点。右键菜单会隐藏编辑操作（新建根节点、导入），保留仅查看操作（导出、布局）。
 
+### 轻量查看器
+
+对于注重打包体积的只读场景（仪表盘、文档、嵌入），可使用 `MindMapViewer` — 一个独立组件，不包含编辑钩子、AI 输入、右键菜单、导出工具等，打包体积减少约 48%。
+
+```tsx
+// 通过子路径导入获得最小体积：
+import { MindMapViewer } from "@xiangfa/mindmap/viewer";
+import "@xiangfa/mindmap/style.css";
+
+<MindMapViewer markdown={markdown} />;
+```
+
+或从主入口导入（支持 tree-shaking）：
+
+```tsx
+import { MindMapViewer } from "@xiangfa/mindmap";
+```
+
+`MindMapViewer` 支持所有渲染功能：主题、插件、平移/缩放、折叠切换、备注提示和缩放/布局快捷键。**不**包含编辑、拖拽排序、AI 生成、右键菜单、导出或文本编辑器。
+
 ### 文本编辑器模式
 
 传入 `MindMapTextEditor` 组件以启用内置的文本编辑模式，支持语法高亮。用户可以通过右下角的按钮在可视化思维导图与 Markdown 文本编辑器之间切换。
@@ -139,7 +161,7 @@ const markdown = `
 ```tsx
 import { MindMap, MindMapTextEditor } from "@xiangfa/mindmap";
 
-<MindMap markdown={markdown} textEditor={MindMapTextEditor} />
+<MindMap markdown={markdown} textEditor={MindMapTextEditor} />;
 ```
 
 文本编辑器是可选引入的，支持 tree-shaking — 只有在导入并传入该组件时才会被打包。如果省略，文本模式切换按钮将被隐藏。
@@ -192,34 +214,34 @@ import { MindMap, MindMapTextEditor } from "@xiangfa/mindmap";
 
 #### CSS 变量分组
 
-| 分组 | 变量 |
-|------|------|
-| 画布 | `--mindmap-canvas-bg` |
-| 根节点 | `--mindmap-root-bg`、`--mindmap-root-text`、`--mindmap-root-font-size`、`--mindmap-root-font-weight`、`--mindmap-root-font-family` |
-| 子节点 | `--mindmap-node-text`、`--mindmap-node-font-size`、`--mindmap-node-font-weight`、`--mindmap-node-font-family` |
-| 一级节点 | `--mindmap-level1-font-size`、`--mindmap-level1-font-weight` |
-| 连线 | `--mindmap-edge-width` |
-| 选中态 | `--mindmap-selection-stroke`、`--mindmap-selection-fill` |
-| 高亮 | `--mindmap-highlight-text`、`--mindmap-highlight-bg` |
-| 添加按钮 | `--mindmap-addbtn-fill`、`--mindmap-addbtn-hover`、`--mindmap-addbtn-icon` |
-| 控件 | `--mindmap-controls-bg`、`--mindmap-controls-text`、`--mindmap-controls-hover` |
-| 右键菜单 | `--mindmap-ctx-bg`、`--mindmap-ctx-text`、`--mindmap-ctx-hover`、`--mindmap-ctx-border`、`--mindmap-ctx-shadow` |
-| 分支颜色 | `--mindmap-branch-0` 至 `--mindmap-branch-9` |
+| 分组     | 变量                                                                                                                               |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 画布     | `--mindmap-canvas-bg`                                                                                                              |
+| 根节点   | `--mindmap-root-bg`、`--mindmap-root-text`、`--mindmap-root-font-size`、`--mindmap-root-font-weight`、`--mindmap-root-font-family` |
+| 子节点   | `--mindmap-node-text`、`--mindmap-node-font-size`、`--mindmap-node-font-weight`、`--mindmap-node-font-family`                      |
+| 一级节点 | `--mindmap-level1-font-size`、`--mindmap-level1-font-weight`                                                                       |
+| 连线     | `--mindmap-edge-width`                                                                                                             |
+| 选中态   | `--mindmap-selection-stroke`、`--mindmap-selection-fill`                                                                           |
+| 高亮     | `--mindmap-highlight-text`、`--mindmap-highlight-bg`                                                                               |
+| 添加按钮 | `--mindmap-addbtn-fill`、`--mindmap-addbtn-hover`、`--mindmap-addbtn-icon`                                                         |
+| 控件     | `--mindmap-controls-bg`、`--mindmap-controls-text`、`--mindmap-controls-hover`                                                     |
+| 右键菜单 | `--mindmap-ctx-bg`、`--mindmap-ctx-text`、`--mindmap-ctx-hover`、`--mindmap-ctx-border`、`--mindmap-ctx-shadow`                    |
+| 分支颜色 | `--mindmap-branch-0` 至 `--mindmap-branch-9`                                                                                       |
 
 #### CSS 类选择器
 
-| 类名 | 目标 |
-|------|------|
-| `.mindmap-node-root` | 根节点分组 |
-| `.mindmap-node-child` | 子节点分组 |
-| `.mindmap-node-bg` | 节点背景矩形 |
-| `.mindmap-node-text` | 节点文本元素 |
-| `.mindmap-node-underline` | 子节点下划线 |
-| `.mindmap-edge` | 连接线 |
-| `.mindmap-edge-label` | 连线标签文本 |
-| `.mindmap-add-btn` | 添加子节点按钮 |
-| `.mindmap-fold-btn` | 折叠/展开切换按钮 |
-| `.mindmap-tag` | 标签徽章 |
+| 类名                      | 目标              |
+| ------------------------- | ----------------- |
+| `.mindmap-node-root`      | 根节点分组        |
+| `.mindmap-node-child`     | 子节点分组        |
+| `.mindmap-node-bg`        | 节点背景矩形      |
+| `.mindmap-node-text`      | 节点文本元素      |
+| `.mindmap-node-underline` | 子节点下划线      |
+| `.mindmap-edge`           | 连接线            |
+| `.mindmap-edge-label`     | 连线标签文本      |
+| `.mindmap-add-btn`        | 添加子节点按钮    |
+| `.mindmap-fold-btn`       | 折叠/展开切换按钮 |
+| `.mindmap-tag`            | 标签徽章          |
 
 导出的 SVG 会嵌入一个包含已解析 CSS 值的 `<style>` 块，并包含相同的语义类名和 `data-branch-index` 属性，因此独立的 SVG 文件无需外部 CSS 即可正确渲染。
 
@@ -559,20 +581,20 @@ theme: dark
 
 ### Props
 
-| Prop               | 类型                            | 默认值       | 说明                                                 |
-| ------------------ | ------------------------------- | ------------ | ---------------------------------------------------- |
-| `data`             | `MindMapData \| MindMapData[]`  | _必填_       | 树数据（单根或根数组）                               |
-| `markdown`         | `string`                        | -            | Markdown 列表源（设置时覆盖 `data`）                 |
-| `defaultDirection` | `'left' \| 'right' \| 'both'`   | `'both'`     | 初始布局方向                                         |
-| `theme`            | `'light' \| 'dark' \| 'auto'`   | `'auto'`     | 颜色主题                                             |
-| `locale`           | `string`                        | _自动_       | UI 语言（自动检测，或 `'zh-CN'`、`'en-US'`、自定义） |
-| `messages`         | `Partial<MindMapMessages>`      | -            | 覆盖任意 UI 文本字符串                               |
-| `readonly`         | `boolean`                       | `false`      | 仅显示模式（不可编辑、不可创建）                     |
-| `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | 显示/隐藏缩放控件                                    |
-| `ai`               | `MindMapAIConfig`               | -            | AI 生成配置（API 地址、密钥、模型、附件类型）        |
-| `plugins`          | `MindMapPlugin[]`               | `allPlugins` | 启用的扩展语法插件                                   |
+| Prop               | 类型                            | 默认值       | 说明                                                                       |
+| ------------------ | ------------------------------- | ------------ | -------------------------------------------------------------------------- |
+| `data`             | `MindMapData \| MindMapData[]`  | _必填_       | 树数据（单根或根数组）                                                     |
+| `markdown`         | `string`                        | -            | Markdown 列表源（设置时覆盖 `data`）                                       |
+| `defaultDirection` | `'left' \| 'right' \| 'both'`   | `'both'`     | 初始布局方向                                                               |
+| `theme`            | `'light' \| 'dark' \| 'auto'`   | `'auto'`     | 颜色主题                                                                   |
+| `locale`           | `string`                        | _自动_       | UI 语言（自动检测，或 `'zh-CN'`、`'en-US'`、自定义）                       |
+| `messages`         | `Partial<MindMapMessages>`      | -            | 覆盖任意 UI 文本字符串                                                     |
+| `readonly`         | `boolean`                       | `false`      | 仅显示模式（不可编辑、不可创建）                                           |
+| `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | 显示/隐藏缩放控件                                                          |
+| `ai`               | `MindMapAIConfig`               | -            | AI 生成配置（API 地址、密钥、模型、附件类型）                              |
+| `plugins`          | `MindMapPlugin[]`               | `allPlugins` | 启用的扩展语法插件                                                         |
 | `textEditor`       | `ComponentType`                 | -            | 传入 `MindMapTextEditor` 以启用文本编辑模式。可选引入，支持 tree-shaking。 |
-| `onDataChange`     | `(data: MindMapData[]) => void` | -            | 用户交互修改树时调用                                 |
+| `onDataChange`     | `(data: MindMapData[]) => void` | -            | 用户交互修改树时调用                                                       |
 
 ### ToolbarConfig
 
@@ -614,6 +636,32 @@ interface MindMapAIConfig {
 | `getData()`         | `MindMapData[]` | 返回当前树数据               |
 | `setData(data)`     | `void`          | 替换树数据                   |
 | `setMarkdown(md)`   | `void`          | 解析 Markdown 并替换树       |
+| `fitView()`         | `void`          | 重置缩放和平移以适应所有节点 |
+| `setDirection(dir)` | `void`          | 更改布局方向                 |
+
+### MindMapViewer
+
+`MindMap` 的轻量只读替代组件。通过 `@xiangfa/mindmap/viewer` 导入获得最小体积，或从主入口导入。
+
+#### MindMapViewerProps
+
+| Prop               | 类型                            | 默认值   | 说明                                                 |
+| ------------------ | ------------------------------- | -------- | ---------------------------------------------------- |
+| `data`             | `MindMapData \| MindMapData[]`  | -        | 树数据（单根或根数组）                               |
+| `markdown`         | `string`                        | -        | Markdown 列表源（设置时覆盖 `data`）                 |
+| `defaultDirection` | `'left' \| 'right' \| 'both'`   | `'both'` | 初始布局方向                                         |
+| `theme`            | `'light' \| 'dark' \| 'auto'`   | `'auto'` | 颜色主题                                             |
+| `locale`           | `string`                        | _自动_   | UI 语言（自动检测，或 `'zh-CN'`、`'en-US'`、自定义） |
+| `messages`         | `Partial<MindMapMessages>`      | -        | 覆盖任意 UI 文本字符串                               |
+| `toolbar`          | `boolean \| ToolbarConfig`      | `true`   | 显示/隐藏缩放控件                                    |
+| `plugins`          | `MindMapPlugin[]`               | -        | 启用的扩展语法插件                                   |
+| `onEvent`          | `(event: MindMapEvent) => void` | -        | 缩放、方向切换或节点选择事件回调                     |
+
+#### MindMapViewerRef 方法
+
+| 方法                | 返回值          | 说明                         |
+| ------------------- | --------------- | ---------------------------- |
+| `getData()`         | `MindMapData[]` | 返回当前树数据               |
 | `fitView()`         | `void`          | 重置缩放和平移以适应所有节点 |
 | `setDirection(dir)` | `void`          | 更改布局方向                 |
 
@@ -700,7 +748,10 @@ import {
   latexPlugin,
 
   // 文本编辑器
-  MindMapTextEditor,            // 可选的文本编辑器组件
+  MindMapTextEditor, // 可选的文本编辑器组件
+
+  // 轻量查看器
+  MindMapViewer, // 只读查看器组件（也可通过 @xiangfa/mindmap/viewer 导入）
 } from "@xiangfa/mindmap";
 ```
 

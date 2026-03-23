@@ -41,6 +41,9 @@ export default function UtilityFunctions() {
   tagsPlugin,
   crossLinkPlugin,
   latexPlugin,
+
+  // Lightweight Viewer
+  MindMapViewer,                  // read-only viewer (also via @xiangfa/mindmap/viewer)
 } from "@xiangfa/mindmap";`}</CodeBlock>
     </>
   );

@@ -90,6 +90,27 @@ Application Areas
             or delete. The context menu hides edit actions.
           </p>
 
+          <SubHeading>Lightweight Viewer</SubHeading>
+          <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+            For read-only use cases where bundle size matters (dashboards, documentation, embeds),
+            use <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded text-sm">MindMapViewer</code> —
+            a standalone component with ~48% smaller bundle that excludes editing hooks, AI input,
+            context menu, and export utils.
+          </p>
+          <CodeBlock lang="tsx">{`// Minimal bundle via sub-path import:
+import { MindMapViewer } from "@xiangfa/mindmap/viewer";
+import "@xiangfa/mindmap/style.css";
+
+<MindMapViewer markdown={markdown} />
+
+// Or from the main entry (tree-shakeable):
+import { MindMapViewer } from "@xiangfa/mindmap";`}</CodeBlock>
+          <p className="text-sm text-slate-500 dark:text-slate-500 mt-2 mb-6">
+            Supports all rendering features: themes, plugins, pan/zoom, fold toggle,
+            remark tooltips, and keyboard shortcuts. Does not include editing, drag-drop,
+            AI generation, context menu, export, or text editor.
+          </p>
+
           <SubHeading>Text Editor Mode</SubHeading>
           <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
             Pass the <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded text-sm">MindMapTextEditor</code> component

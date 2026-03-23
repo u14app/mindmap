@@ -164,6 +164,7 @@
   position: absolute;
   bottom: 16px;
   left: 16px;
+  z-index: 20;
   display: flex;
   align-items: center;
   gap: 2px;
@@ -243,7 +244,7 @@
   border: none;
   outline: none;
   resize: none;
-  padding: 24px;
+  padding: 24px 24px 120px;
   margin: 0;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
   font-size: 15px;

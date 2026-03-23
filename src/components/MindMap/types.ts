@@ -113,3 +113,21 @@ export interface MindMapRef {
   fitView(): void
   setDirection(dir: LayoutDirection): void
 }
+
+export interface MindMapViewerProps {
+  data?: MindMapData | MindMapData[]
+  markdown?: string
+  defaultDirection?: LayoutDirection
+  theme?: ThemeMode
+  locale?: string
+  messages?: Partial<import('./utils/i18n').MindMapMessages>
+  toolbar?: boolean | ToolbarConfig
+  plugins?: import('./plugins/types').MindMapPlugin[]
+  onEvent?: (event: MindMapEvent) => void
+}
+
+export interface MindMapViewerRef {
+  getData(): MindMapData[]
+  fitView(): void
+  setDirection(dir: LayoutDirection): void
+}

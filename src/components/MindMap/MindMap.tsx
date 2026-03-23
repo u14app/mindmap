@@ -38,6 +38,12 @@ import { MindMapNode } from "./components/MindMapNode";
 import { MindMapControls } from "./components/MindMapControls";
 import { MindMapContextMenu } from "./components/MindMapContextMenu";
 import { runRenderOverlay } from "./plugins/runner";
+import {
+  getKatexSync,
+  onKatexReady,
+  renderLatexToHtml,
+  loadKatexStyle,
+} from "./plugins/latex";
 import { MindMapAIInput } from "./components/MindMapAIInput";
 import "./MindMap.css";
 
@@ -841,6 +847,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                   expandDelay={expandDelays[node.id]}
                   readonly={readonlyProp}
                   plugins={plugins}
+                  latexRenderer={{ getKatexSync, onKatexReady, renderLatexToHtml, loadKatexStyle }}
                 />
               );
             })}
@@ -909,6 +916,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                       onEditCancel={() => {}}
                       onAddChild={() => {}}
                       readonly
+                      latexRenderer={{ getKatexSync, onKatexReady, renderLatexToHtml, loadKatexStyle }}
                     />
                   ))}
               </g>
@@ -927,7 +935,7 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         zoom={zoom}
         theme={activeTheme}
         messages={t}
-        showZoom={toolbarConfig.zoom}
+        showZoom={toolbarConfig.zoom && mode !== 'text'}
         showModeToggle={!!textEditor}
         mode={mode}
         isFullscreen={isFullscreen}

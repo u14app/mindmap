@@ -4,6 +4,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@xiangfa/mindmap)](https://www.npmjs.com/package/@xiangfa/mindmap)
 [![npm downloads](https://img.shields.io/npm/dm/@xiangfa/mindmap)](https://www.npmjs.com/package/@xiangfa/mindmap)
+[![npm gzip size](https://deno.bundlejs.com/badge?q=@xiangfa/mindmap@0.6.5/viewer)](https://bundlejs.com/?q=%40xiangfa%2Fmindmap%400.6.5%2Fviewer)
 [![license](https://img.shields.io/npm/l/@xiangfa/mindmap)](./LICENSE)
 [![react](https://img.shields.io/badge/react-%E2%89%A518-blue)](https://react.dev)
 
@@ -35,6 +36,7 @@ English | [中文](README.zh-CN.md)
 - **Full-screen mode** — expand the component to fill the viewport
 - **LaTeX math** — render `$...$` inline and `$$...$$` display formulas (requires KaTeX)
 - **Cross-links** — draw edges between arbitrary nodes via `{#anchor}` / `-> {#target}`
+- **Lightweight Viewer** — a standalone read-only component (`MindMapViewer`) with ~48% smaller bundle; import via `@xiangfa/mindmap/viewer` for minimal footprint
 - **Readonly mode** — display-only with pan/zoom/select but no editing; ideal for presentations and embeds
 - **Multiple root nodes** — build separate trees on the same canvas
 - **Drag & drop** — reorder siblings by dragging; drag root's children across the center line to rebalance sides
@@ -132,6 +134,26 @@ Display a mind map without allowing edits — perfect for presentations, documen
 
 In readonly mode, users can still pan, zoom, and select nodes, but cannot create, edit, or delete nodes. The context menu hides editing actions (new root node, import) while keeping view-only actions (export, layout).
 
+### Lightweight Viewer
+
+For read-only use cases where bundle size matters (dashboards, documentation, embeds), use `MindMapViewer` — a standalone component that excludes editing hooks, AI input, context menu, export utils, and more, resulting in a ~48% smaller bundle.
+
+```tsx
+// Minimal bundle via sub-path import:
+import { MindMapViewer } from "@xiangfa/mindmap/viewer";
+import "@xiangfa/mindmap/style.css";
+
+<MindMapViewer markdown={markdown} />;
+```
+
+Or import from the main entry (tree-shakeable):
+
+```tsx
+import { MindMapViewer } from "@xiangfa/mindmap";
+```
+
+`MindMapViewer` supports all rendering features: themes, plugins, pan/zoom, fold toggle, remark tooltips, and keyboard shortcuts for zoom and layout. It does **not** include editing, drag-drop, AI generation, context menu, export, or text editor.
+
 ### Text Editor Mode
 
 Pass the `MindMapTextEditor` component to enable a built-in text editing mode with syntax highlighting. Users can toggle between the visual mind map and a markdown text editor via a button in the bottom-right corner.
@@ -139,7 +161,7 @@ Pass the `MindMapTextEditor` component to enable a built-in text editing mode wi
 ```tsx
 import { MindMap, MindMapTextEditor } from "@xiangfa/mindmap";
 
-<MindMap markdown={markdown} textEditor={MindMapTextEditor} />
+<MindMap markdown={markdown} textEditor={MindMapTextEditor} />;
 ```
 
 The text editor is opt-in and tree-shakeable — it is only bundled when you import and pass it. If omitted, the text mode toggle button is hidden.
@@ -192,34 +214,34 @@ Customize individual branch colors via `data-branch-index`:
 
 #### CSS Variable Groups
 
-| Group | Variables |
-|-------|-----------|
-| Canvas | `--mindmap-canvas-bg` |
-| Root Node | `--mindmap-root-bg`, `--mindmap-root-text`, `--mindmap-root-font-size`, `--mindmap-root-font-weight`, `--mindmap-root-font-family` |
-| Child Nodes | `--mindmap-node-text`, `--mindmap-node-font-size`, `--mindmap-node-font-weight`, `--mindmap-node-font-family` |
-| Level 1 | `--mindmap-level1-font-size`, `--mindmap-level1-font-weight` |
-| Edges | `--mindmap-edge-width` |
-| Selection | `--mindmap-selection-stroke`, `--mindmap-selection-fill` |
-| Highlight | `--mindmap-highlight-text`, `--mindmap-highlight-bg` |
-| Add Button | `--mindmap-addbtn-fill`, `--mindmap-addbtn-hover`, `--mindmap-addbtn-icon` |
-| Controls | `--mindmap-controls-bg`, `--mindmap-controls-text`, `--mindmap-controls-hover` |
-| Context Menu | `--mindmap-ctx-bg`, `--mindmap-ctx-text`, `--mindmap-ctx-hover`, `--mindmap-ctx-border`, `--mindmap-ctx-shadow` |
-| Branch Colors | `--mindmap-branch-0` through `--mindmap-branch-9` |
+| Group         | Variables                                                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Canvas        | `--mindmap-canvas-bg`                                                                                                              |
+| Root Node     | `--mindmap-root-bg`, `--mindmap-root-text`, `--mindmap-root-font-size`, `--mindmap-root-font-weight`, `--mindmap-root-font-family` |
+| Child Nodes   | `--mindmap-node-text`, `--mindmap-node-font-size`, `--mindmap-node-font-weight`, `--mindmap-node-font-family`                      |
+| Level 1       | `--mindmap-level1-font-size`, `--mindmap-level1-font-weight`                                                                       |
+| Edges         | `--mindmap-edge-width`                                                                                                             |
+| Selection     | `--mindmap-selection-stroke`, `--mindmap-selection-fill`                                                                           |
+| Highlight     | `--mindmap-highlight-text`, `--mindmap-highlight-bg`                                                                               |
+| Add Button    | `--mindmap-addbtn-fill`, `--mindmap-addbtn-hover`, `--mindmap-addbtn-icon`                                                         |
+| Controls      | `--mindmap-controls-bg`, `--mindmap-controls-text`, `--mindmap-controls-hover`                                                     |
+| Context Menu  | `--mindmap-ctx-bg`, `--mindmap-ctx-text`, `--mindmap-ctx-hover`, `--mindmap-ctx-border`, `--mindmap-ctx-shadow`                    |
+| Branch Colors | `--mindmap-branch-0` through `--mindmap-branch-9`                                                                                  |
 
 #### CSS Class Selectors
 
-| Class | Target |
-|-------|--------|
-| `.mindmap-node-root` | Root node group |
-| `.mindmap-node-child` | Child node group |
-| `.mindmap-node-bg` | Node background rect |
-| `.mindmap-node-text` | Node text element |
+| Class                     | Target               |
+| ------------------------- | -------------------- |
+| `.mindmap-node-root`      | Root node group      |
+| `.mindmap-node-child`     | Child node group     |
+| `.mindmap-node-bg`        | Node background rect |
+| `.mindmap-node-text`      | Node text element    |
 | `.mindmap-node-underline` | Child node underline |
-| `.mindmap-edge` | Connection line |
-| `.mindmap-edge-label` | Edge label text |
-| `.mindmap-add-btn` | Add child button |
-| `.mindmap-fold-btn` | Fold/unfold toggle |
-| `.mindmap-tag` | Tag badge |
+| `.mindmap-edge`           | Connection line      |
+| `.mindmap-edge-label`     | Edge label text      |
+| `.mindmap-add-btn`        | Add child button     |
+| `.mindmap-fold-btn`       | Fold/unfold toggle   |
+| `.mindmap-tag`            | Tag badge            |
 
 Exported SVGs embed a `<style>` block with resolved CSS values and include the same semantic classes and `data-branch-index` attributes, so standalone SVGs render correctly without external CSS.
 
@@ -559,20 +581,20 @@ Render mathematical formulas (requires [KaTeX](https://katex.org/)):
 
 ### Props
 
-| Prop               | Type                            | Default      | Description                                                               |
-| ------------------ | ------------------------------- | ------------ | ------------------------------------------------------------------------- |
-| `data`             | `MindMapData \| MindMapData[]`  | _required_   | Tree data (single root or array of roots)                                 |
-| `markdown`         | `string`                        | -            | Markdown list source (overrides `data` when set)                          |
-| `defaultDirection` | `'left' \| 'right' \| 'both'`   | `'both'`     | Initial layout direction                                                  |
-| `theme`            | `'light' \| 'dark' \| 'auto'`   | `'auto'`     | Color theme                                                               |
-| `locale`           | `string`                        | _auto_       | UI language (auto-detected from browser, or `'zh-CN'`, `'en-US'`, custom) |
-| `messages`         | `Partial<MindMapMessages>`      | -            | Override any UI text string                                               |
-| `readonly`         | `boolean`                       | `false`      | Display-only mode (no editing, no creating)                               |
-| `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | Show/hide zoom controls                                                   |
-| `ai`               | `MindMapAIConfig`               | -            | AI generation configuration (API endpoint, key, model, attachments)       |
-| `plugins`          | `MindMapPlugin[]`               | `allPlugins` | Plugins to enable for extended syntax                                     |
+| Prop               | Type                            | Default      | Description                                                                    |
+| ------------------ | ------------------------------- | ------------ | ------------------------------------------------------------------------------ |
+| `data`             | `MindMapData \| MindMapData[]`  | _required_   | Tree data (single root or array of roots)                                      |
+| `markdown`         | `string`                        | -            | Markdown list source (overrides `data` when set)                               |
+| `defaultDirection` | `'left' \| 'right' \| 'both'`   | `'both'`     | Initial layout direction                                                       |
+| `theme`            | `'light' \| 'dark' \| 'auto'`   | `'auto'`     | Color theme                                                                    |
+| `locale`           | `string`                        | _auto_       | UI language (auto-detected from browser, or `'zh-CN'`, `'en-US'`, custom)      |
+| `messages`         | `Partial<MindMapMessages>`      | -            | Override any UI text string                                                    |
+| `readonly`         | `boolean`                       | `false`      | Display-only mode (no editing, no creating)                                    |
+| `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | Show/hide zoom controls                                                        |
+| `ai`               | `MindMapAIConfig`               | -            | AI generation configuration (API endpoint, key, model, attachments)            |
+| `plugins`          | `MindMapPlugin[]`               | `allPlugins` | Plugins to enable for extended syntax                                          |
 | `textEditor`       | `ComponentType`                 | -            | Pass `MindMapTextEditor` to enable text editing mode. Opt-in for tree-shaking. |
-| `onDataChange`     | `(data: MindMapData[]) => void` | -            | Called when the tree is modified by user interaction                      |
+| `onDataChange`     | `(data: MindMapData[]) => void` | -            | Called when the tree is modified by user interaction                           |
 
 ### ToolbarConfig
 
@@ -616,6 +638,32 @@ interface MindMapAIConfig {
 | `setMarkdown(md)`   | `void`          | Parses markdown and replaces the tree  |
 | `fitView()`         | `void`          | Resets zoom and pan to fit all nodes   |
 | `setDirection(dir)` | `void`          | Changes the layout direction           |
+
+### MindMapViewer
+
+A lightweight read-only alternative to `MindMap`. Import from `@xiangfa/mindmap/viewer` for the smallest bundle, or from the main entry.
+
+#### MindMapViewerProps
+
+| Prop               | Type                            | Default  | Description                                                               |
+| ------------------ | ------------------------------- | -------- | ------------------------------------------------------------------------- |
+| `data`             | `MindMapData \| MindMapData[]`  | -        | Tree data (single root or array of roots)                                 |
+| `markdown`         | `string`                        | -        | Markdown list source (overrides `data` when set)                          |
+| `defaultDirection` | `'left' \| 'right' \| 'both'`   | `'both'` | Initial layout direction                                                  |
+| `theme`            | `'light' \| 'dark' \| 'auto'`   | `'auto'` | Color theme                                                               |
+| `locale`           | `string`                        | _auto_   | UI language (auto-detected from browser, or `'zh-CN'`, `'en-US'`, custom) |
+| `messages`         | `Partial<MindMapMessages>`      | -        | Override any UI text string                                               |
+| `toolbar`          | `boolean \| ToolbarConfig`      | `true`   | Show/hide zoom controls                                                   |
+| `plugins`          | `MindMapPlugin[]`               | -        | Plugins to enable for extended syntax                                     |
+| `onEvent`          | `(event: MindMapEvent) => void` | -        | Called on zoom, direction change, or node select events                   |
+
+#### MindMapViewerRef Methods
+
+| Method              | Returns         | Description                          |
+| ------------------- | --------------- | ------------------------------------ |
+| `getData()`         | `MindMapData[]` | Returns the current tree data        |
+| `fitView()`         | `void`          | Resets zoom and pan to fit all nodes |
+| `setDirection(dir)` | `void`          | Changes the layout direction         |
 
 ### Data Structure
 
@@ -700,7 +748,10 @@ import {
   latexPlugin,
 
   // Text Editor
-  MindMapTextEditor,            // opt-in text editor component
+  MindMapTextEditor, // opt-in text editor component
+
+  // Lightweight Viewer
+  MindMapViewer, // read-only viewer component (also available via @xiangfa/mindmap/viewer)
 } from "@xiangfa/mindmap";
 ```
 

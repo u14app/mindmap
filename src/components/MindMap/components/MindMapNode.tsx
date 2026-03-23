@@ -11,12 +11,12 @@ import {
   runRenderNodeDecoration,
   runRenderInlineToken,
 } from "../plugins/runner";
-import {
-  getKatexSync,
-  onKatexReady,
-  renderLatexToHtml,
-  loadKatexStyle,
-} from "../plugins/latex";
+export interface LatexRenderer {
+  getKatexSync: () => unknown;
+  onKatexReady: (cb: () => void) => void;
+  renderLatexToHtml: (tex: string, displayMode: boolean) => string | null;
+  loadKatexStyle: () => void;
+}
 
 const MONO_FONT =
   "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace";
@@ -49,6 +49,7 @@ export interface MindMapNodeProps {
   onRemarkHover?: (nodeId: string | null) => void;
   onFoldToggle?: (nodeId: string) => void;
   expandDelay?: number;
+  latexRenderer?: LatexRenderer;
 }
 
 // --- SVG token rendering helpers ---
@@ -245,6 +246,7 @@ function SvgNodeContent({
   plugins,
   highlightTextColor,
   highlightBgColor,
+  latexRenderer,
 }: {
   node: LayoutNode;
   fontSize: number;
@@ -255,14 +257,15 @@ function SvgNodeContent({
   plugins?: MindMapPlugin[];
   highlightTextColor?: string;
   highlightBgColor?: string;
+  latexRenderer?: LatexRenderer;
 }) {
   // Re-render when KaTeX finishes loading
-  const [katexReady, setKatexReady] = useState(() => !!getKatexSync());
+  const [katexReady, setKatexReady] = useState(() => !!latexRenderer?.getKatexSync());
   useEffect(() => {
-    if (!katexReady) {
-      onKatexReady(() => setKatexReady(true));
+    if (!katexReady && latexRenderer) {
+      latexRenderer.onKatexReady(() => setKatexReady(true));
     }
-  }, [katexReady]);
+  }, [katexReady, latexRenderer]);
 
   const { layouts, textContentWidth, taskIconWidth, totalWidth } =
     useMemo(() => {
@@ -374,17 +377,17 @@ function SvgNodeContent({
       </text>
 
       {/* LaTeX foreignObject overlays (rendered outside <text> since SVG text can't contain foreignObject) */}
-      {katexReady &&
+      {katexReady && latexRenderer &&
         layouts.map((layout, i) => {
           const { token } = layout;
           if (token.type !== "latex-inline" && token.type !== "latex-block")
             return null;
-          const html = renderLatexToHtml(
+          const html = latexRenderer.renderLatexToHtml(
             token.content,
             token.type === "latex-block",
           );
           if (!html) return null;
-          loadKatexStyle();
+          latexRenderer.loadKatexStyle();
           // Center the foreignObject on the token's center point
           const tokenCenterX = textStartX + layout.x + layout.width / 2;
           const foWidth = Math.max(layout.width * 2.5, 120);
@@ -483,7 +486,7 @@ function SvgNodeContent({
                 )}
               </text>
               {/* LaTeX foreignObject overlays for multi-line content */}
-              {katexReady &&
+              {katexReady && latexRenderer &&
                 mlLayouts.map((layout, j) => {
                   const { token } = layout;
                   if (
@@ -491,12 +494,12 @@ function SvgNodeContent({
                     token.type !== "latex-block"
                   )
                     return null;
-                  const html = renderLatexToHtml(
+                  const html = latexRenderer.renderLatexToHtml(
                     token.content,
                     token.type === "latex-block",
                   );
                   if (!html) return null;
-                  loadKatexStyle();
+                  latexRenderer.loadKatexStyle();
                   const mlTokenCenterX = mlStartX + layout.x + layout.width / 2;
                   const mlFoWidth = Math.max(layout.width * 2.5, 120);
                   const mlFoHeight = mlFontSize * 2;
@@ -624,6 +627,7 @@ export function MindMapNode({
   onRemarkHover,
   onFoldToggle,
   expandDelay,
+  latexRenderer,
 }: MindMapNodeProps) {
   const nx = node.x + (offset?.x ?? 0);
   const ny = node.y + (offset?.y ?? 0);
@@ -712,6 +716,7 @@ export function MindMapNode({
             plugins={plugins}
             highlightTextColor={theme.highlight.textColor}
             highlightBgColor={theme.highlight.bgColor}
+            latexRenderer={latexRenderer}
           />
         )}
         {/* Plugin decorations */}
@@ -873,6 +878,7 @@ export function MindMapNode({
             plugins={plugins}
             highlightTextColor={theme.highlight.textColor}
             highlightBgColor={theme.highlight.bgColor}
+            latexRenderer={latexRenderer}
           />
           <line
             className="mindmap-node-underline"

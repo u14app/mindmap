@@ -285,6 +285,112 @@ interface CrossLink {
   label?: string;
   dotted?: boolean;
 }`}</CodeBlock>
+
+          <SubHeading>MindMapViewer</SubHeading>
+          <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+            A lightweight read-only alternative to <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded text-sm">MindMap</code>.
+            Import from <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded text-sm">@xiangfa/mindmap/viewer</code> for the smallest bundle.
+          </p>
+
+          <h4 className="font-bold text-slate-900 dark:text-white mt-6 mb-3">MindMapViewerProps</h4>
+          <div className="docs-table-wrap my-6">
+            <table className="docs-table">
+              <thead>
+                <tr>
+                  <th>Prop</th>
+                  <th>Type</th>
+                  <th>Default</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>data</code></td>
+                  <td><code>MindMapData | MindMapData[]</code></td>
+                  <td>-</td>
+                  <td>Tree data (single root or array of roots)</td>
+                </tr>
+                <tr>
+                  <td><code>markdown</code></td>
+                  <td><code>string</code></td>
+                  <td>-</td>
+                  <td>Markdown list source (overrides <code>data</code> when set)</td>
+                </tr>
+                <tr>
+                  <td><code>defaultDirection</code></td>
+                  <td><code>'left' | 'right' | 'both'</code></td>
+                  <td><code>'both'</code></td>
+                  <td>Initial layout direction</td>
+                </tr>
+                <tr>
+                  <td><code>theme</code></td>
+                  <td><code>'light' | 'dark' | 'auto'</code></td>
+                  <td><code>'auto'</code></td>
+                  <td>Color theme</td>
+                </tr>
+                <tr>
+                  <td><code>locale</code></td>
+                  <td><code>string</code></td>
+                  <td><em>auto</em></td>
+                  <td>UI language</td>
+                </tr>
+                <tr>
+                  <td><code>messages</code></td>
+                  <td><code>{"Partial<MindMapMessages>"}</code></td>
+                  <td>-</td>
+                  <td>Override any UI text string</td>
+                </tr>
+                <tr>
+                  <td><code>toolbar</code></td>
+                  <td><code>boolean | ToolbarConfig</code></td>
+                  <td><code>true</code></td>
+                  <td>Show/hide zoom controls</td>
+                </tr>
+                <tr>
+                  <td><code>plugins</code></td>
+                  <td><code>MindMapPlugin[]</code></td>
+                  <td>-</td>
+                  <td>Enabled extended syntax plugins</td>
+                </tr>
+                <tr>
+                  <td><code>onEvent</code></td>
+                  <td><code>{"(event: MindMapEvent) => void"}</code></td>
+                  <td>-</td>
+                  <td>Called on zoom, direction change, or node select events</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4 className="font-bold text-slate-900 dark:text-white mt-6 mb-3">MindMapViewerRef Methods</h4>
+          <div className="docs-table-wrap my-6">
+            <table className="docs-table">
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Returns</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>getData()</code></td>
+                  <td><code>MindMapData[]</code></td>
+                  <td>Return current tree data</td>
+                </tr>
+                <tr>
+                  <td><code>fitView()</code></td>
+                  <td><code>void</code></td>
+                  <td>Reset zoom and pan to fit all nodes</td>
+                </tr>
+                <tr>
+                  <td><code>setDirection(dir)</code></td>
+                  <td><code>void</code></td>
+                  <td>Change layout direction</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
     </>
   );
 }

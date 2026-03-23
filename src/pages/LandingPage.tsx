@@ -326,6 +326,11 @@ function LandingPage() {
                 title: "Text Editor",
                 desc: "Opt-in syntax-highlighted markdown editor. Toggle between visual and text modes.",
               },
+              {
+                icon: "speed",
+                title: "Lightweight Viewer",
+                desc: "Read-only MindMapViewer component with ~48% smaller bundle. Perfect for embeds and dashboards.",
+              },
             ].map((f) => (
               <div
                 key={f.title}

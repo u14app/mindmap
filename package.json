@@ -3,7 +3,7 @@
   "description": "A beautiful, interactive mind map component for React.",
   "license": "Apache-2.0",
   "private": false,
-  "version": "0.6.0",
+  "version": "0.6.5",
   "type": "module",
   "main": "dist/mindmap.umd.cjs",
   "module": "dist/esm/index.js",
@@ -21,6 +21,12 @@
       "require": {
         "types": "./dist/index.d.ts",
         "default": "./dist/mindmap.umd.cjs"
+      }
+    },
+    "./viewer": {
+      "import": {
+        "types": "./dist/viewer.d.ts",
+        "default": "./dist/esm/MindMapViewer.js"
       }
     },
     "./style.css": "./dist/style.css"
