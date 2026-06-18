@@ -3,6 +3,31 @@ import {
   useEffect,
   useCallback,
 } from "react";
+import {
+  Terminal,
+  Check,
+  Copy,
+  CircleCheck,
+  Bot,
+  Image,
+  Smartphone,
+  Moon,
+  Palette,
+  Keyboard,
+  Package,
+  MousePointerClick,
+  Languages,
+  Download,
+  NotebookPen,
+  Gauge,
+  Settings,
+  Spline,
+  FoldVertical,
+  NotebookText,
+  Tag,
+  Workflow,
+  SquareFunction,
+} from "lucide-react";
 import MindMapPlayground from "../components/MindMapPlayground";
 import { version } from "../../package.json";
 import "../App.css";
@@ -114,9 +139,7 @@ function LandingPage() {
         {/* --------------------------------------------------------------- */}
         <section className="max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-16 text-center">
           <div className="hero-animate inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-[11px] font-bold tracking-wider uppercase mb-6 md:mb-8">
-            <span className="material-symbols-outlined text-[14px]">
-              terminal
-            </span>
+            <Terminal size={14} />
             {`v${version}`} &middot; Open Source
           </div>
 
@@ -146,9 +169,7 @@ function LandingPage() {
                 onClick={handleCopy}
                 className="text-slate-500 hover:text-white transition-colors shrink-0 ml-2 p-1"
               >
-                <span className="material-symbols-outlined text-sm">
-                  {copied ? "check" : "content_copy"}
-                </span>
+                {copied ? <Check size={16} /> : <Copy size={16} />}
               </button>
             </div>
           </div>
@@ -203,27 +224,19 @@ function LandingPage() {
               </p>
               <ul className="space-y-4">
                 <li className="flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  <span className="material-symbols-outlined text-primary text-[20px]">
-                    check_circle
-                  </span>
+                  <CircleCheck className="text-primary" size={20} />
                   Sub-10ms Layout Recalculation
                 </li>
                 <li className="flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  <span className="material-symbols-outlined text-primary text-[20px]">
-                    check_circle
-                  </span>
+                  <CircleCheck className="text-primary" size={20} />
                   Native Streaming Support
                 </li>
                 <li className="flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  <span className="material-symbols-outlined text-primary text-[20px]">
-                    check_circle
-                  </span>
+                  <CircleCheck className="text-primary" size={20} />
                   OpenAI-Compatible API
                 </li>
                 <li className="flex items-center gap-3 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  <span className="material-symbols-outlined text-primary text-[20px]">
-                    check_circle
-                  </span>
+                  <CircleCheck className="text-primary" size={20} />
                   Built-in AI Input with File Attachments
                 </li>
               </ul>
@@ -272,62 +285,62 @@ function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {[
               {
-                icon: "smart_toy",
+                icon: Bot,
                 title: "AI Generation",
                 desc: "Built-in AI input bar with OpenAI-compatible streaming and file attachments.",
               },
               {
-                icon: "image",
+                icon: Image,
                 title: "Pure SVG Rendering",
                 desc: "No Canvas, no external layout engine. Crystal-sharp at any zoom level.",
               },
               {
-                icon: "smartphone",
+                icon: Smartphone,
                 title: "iOS-Style UI",
                 desc: "Frosted glass controls, rounded corners, and smooth animations.",
               },
               {
-                icon: "dark_mode",
+                icon: Moon,
                 title: "Dark Mode",
                 desc: "Auto-detects prefers-color-scheme, or explicitly set light / dark.",
               },
               {
-                icon: "palette",
+                icon: Palette,
                 title: "CSS Customizable",
                 desc: "30+ CSS custom properties and semantic classes. Override colors, fonts, and branch styles with plain CSS.",
               },
               {
-                icon: "keyboard",
+                icon: Keyboard,
                 title: "Keyboard First",
                 desc: "Enter to create, Delete to remove, Cmd+C/V to copy-paste, and more.",
               },
               {
-                icon: "inventory_2",
+                icon: Package,
                 title: "Zero Dependencies",
                 desc: "Only React as a peer dependency. Tiny bundle, maximum performance.",
               },
               {
-                icon: "touch_app",
+                icon: MousePointerClick,
                 title: "Mobile & Touch",
                 desc: "Single-finger pan, two-finger pinch-to-zoom. Works everywhere.",
               },
               {
-                icon: "translate",
+                icon: Languages,
                 title: "Internationalization",
                 desc: "Auto-detects browser language. Built-in en-US and zh-CN.",
               },
               {
-                icon: "file_download",
+                icon: Download,
                 title: "Export Anywhere",
                 desc: "SVG, high-DPI PNG, and Markdown export out of the box.",
               },
               {
-                icon: "edit_note",
+                icon: NotebookPen,
                 title: "Text Editor",
                 desc: "Opt-in syntax-highlighted markdown editor. Toggle between visual and text modes.",
               },
               {
-                icon: "speed",
+                icon: Gauge,
                 title: "Lightweight Viewer",
                 desc: "Read-only MindMapViewer component with ~48% smaller bundle. Perfect for embeds and dashboards.",
               },
@@ -337,9 +350,7 @@ function LandingPage() {
                 className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-[0_2px_12px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.2)] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.3)] transition-shadow duration-300"
               >
                 <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center mb-4">
-                  <span className="material-symbols-outlined text-primary text-[20px]">
-                    {f.icon}
-                  </span>
+                  <f.icon className="text-primary" size={20} />
                 </div>
                 <div className="font-bold text-slate-900 dark:text-white mb-1">{f.title}</div>
                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
@@ -373,43 +384,43 @@ function LandingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[
               {
-                icon: "settings",
+                icon: Settings,
                 name: "Frontmatter",
                 syntax: "---\ndirection: right\ntheme: dark\n---",
                 desc: "Set direction and theme via YAML header",
               },
               {
-                icon: "line_style",
+                icon: Spline,
                 name: "Dotted Lines",
                 syntax: "-. Dashed child node",
                 desc: "Dashed connections for weak relationships",
               },
               {
-                icon: "unfold_less",
+                icon: FoldVertical,
                 name: "Folding",
                 syntax: "+ Collapsed group\n  - Hidden child",
                 desc: "Collapsible node groups",
               },
               {
-                icon: "notes",
+                icon: NotebookText,
                 name: "Multi-line",
                 syntax: "- Title\n  | Detail line 1\n  | Detail line 2",
                 desc: "Multi-line content within a single node",
               },
               {
-                icon: "label",
+                icon: Tag,
                 name: "Tags",
                 syntax: "- React #frontend #lib",
                 desc: "Visual categorization with color-coded tags",
               },
               {
-                icon: "conversion_path",
+                icon: Workflow,
                 name: "Cross Links",
                 syntax: '- Node {#a}\n  -> {#b} "ref"',
                 desc: "Draw connections between any two nodes",
               },
               {
-                icon: "function",
+                icon: SquareFunction,
                 name: "LaTeX Math",
                 syntax: "- Inline: $E = mc^2$\n- Block: $$\\sum x_i$$",
                 desc: "Render math formulas via KaTeX",
@@ -421,9 +432,7 @@ function LandingPage() {
               >
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
-                    <span className="material-symbols-outlined text-primary text-[18px]">
-                      {p.icon}
-                    </span>
+                    <p.icon className="text-primary" size={18} />
                   </div>
                   <span className="font-bold text-slate-900 dark:text-white">{p.name}</span>
                 </div>
@@ -469,9 +478,7 @@ function LandingPage() {
                     key={item}
                     className="flex items-start gap-3 text-sm font-medium text-slate-700 dark:text-slate-300"
                   >
-                    <span className="material-symbols-outlined text-primary text-[18px] mt-0.5 shrink-0">
-                      check
-                    </span>
+                    <Check className="text-primary mt-0.5 shrink-0" size={18} />
                     {item}
                   </li>
                 ))}

@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { Zap, LoaderCircle } from "lucide-react";
 import { MindMap, allPlugins } from "./MindMap";
 import type { MindMapRef } from "./MindMap";
 import { MindMapTextEditor } from "./MindMap/components/MindMapTextEditor";
@@ -38,12 +39,14 @@ function MindMapPlayground({
   const [markdown, setMarkdown] = useState(defaultMarkdown);
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // ---- AI Generation ----
   const handleAIGenerate = useCallback(async () => {
     if (!aiPrompt.trim() || isGenerating) return;
 
     setIsGenerating(true);
+    setError(null);
 
     try {
       const response = await fetch(
@@ -83,6 +86,10 @@ function MindMapPlayground({
       mindMapRef.current?.setMarkdown(finalMarkdown);
     } catch (error) {
       console.error("AI generation failed:", error);
+      setError(
+        error instanceof Error ? error.message : "AI generation failed",
+      );
+      setTimeout(() => setError(null), 5000);
     } finally {
       setIsGenerating(false);
       setAiPrompt("");
@@ -156,16 +163,17 @@ function MindMapPlayground({
                 className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-slate-900 shrink-0 transition-all hover:bg-primary dark:hover:bg-primary dark:hover:text-white disabled:opacity-50"
               >
                 {isGenerating ? (
-                  <span className="material-symbols-outlined text-[16px] animate-spin">
-                    progress_activity
-                  </span>
+                  <LoaderCircle size={16} className="animate-spin" />
                 ) : (
-                  <span className="material-symbols-outlined text-[16px]">
-                    bolt
-                  </span>
+                  <Zap size={16} />
                 )}
               </button>
             </div>
+            {error && (
+              <div className="mt-2 px-3 text-xs font-medium text-red-500">
+                {error}
+              </div>
+            )}
           </div>
         </div>
 

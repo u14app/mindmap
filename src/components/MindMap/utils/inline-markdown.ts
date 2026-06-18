@@ -189,13 +189,31 @@ export function stripInlineMarkdown(text: string): string {
 const MONO_FONT =
   "'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace";
 
+export const INLINE_IMAGE_WIDTH = 80;
+export const INLINE_IMAGE_HEIGHT = 48;
+
 let _measureCtx: CanvasRenderingContext2D | null = null;
-function getMeasureCtx(): CanvasRenderingContext2D {
-  if (!_measureCtx) {
-    const c = document.createElement("canvas");
-    _measureCtx = c.getContext("2d")!;
+let _measureCtxResolved = false;
+function getMeasureCtx(): CanvasRenderingContext2D | null {
+  if (!_measureCtxResolved) {
+    _measureCtxResolved = true;
+    // Canvas measurement needs a DOM. In SSR / Node / test environments there
+    // is no `document` (or no 2d context), so callers fall back to estimation.
+    if (typeof document !== "undefined") {
+      _measureCtx = document.createElement("canvas").getContext("2d");
+    }
   }
   return _measureCtx;
+}
+
+// Rough per-character width estimate (× fontSize) used when canvas measurement
+// is unavailable. CJK glyphs are ~full-width, so they are weighted separately.
+function estimateTokenWidth(text: string, fontSize: number): number {
+  let width = 0;
+  for (const ch of text) {
+    width += /[\u3000-\u9fff\uff00-\uffef]/.test(ch) ? fontSize : fontSize * 0.6;
+  }
+  return width;
 }
 
 function measureTokenText(
@@ -205,6 +223,7 @@ function measureTokenText(
   fontFamily: string,
 ): number {
   const ctx = getMeasureCtx();
+  if (!ctx) return estimateTokenWidth(text, fontSize);
   ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
   return ctx.measureText(text).width;
 }
@@ -246,12 +265,7 @@ export function computeTokenLayouts(
         width = measureTokenText(token.text, fontSize, fontWeight, fontFamily);
         break;
       case "image":
-        width = measureTokenText(
-          `[${token.alt || "image"}]`,
-          fontSize,
-          fontWeight,
-          fontFamily,
-        );
+        width = INLINE_IMAGE_WIDTH;
         break;
       case "latex-inline":
       case "latex-block":
@@ -291,6 +305,10 @@ function escapeXml(str: string): string {
 }
 
 export { escapeXml };
+
+export function hasInlineImage(text: string): boolean {
+  return /!\[([^\]]*)\]\(([^)]+)\)/.test(text);
+}
 
 /**
  * Build SVG elements string for a node's formatted text content.
@@ -353,13 +371,21 @@ export function buildSvgNodeTextString(
     }
   }
 
+  for (const layout of layouts) {
+    if (layout.token.type === "image") {
+      parts.push(
+        `<image class="mindmap-inline-image" href="${escapeXml(layout.token.url)}" x="${textStartX + layout.x}" y="${-INLINE_IMAGE_HEIGHT / 2}" width="${layout.width}" height="${INLINE_IMAGE_HEIGHT}" preserveAspectRatio="xMidYMid meet"><title>${escapeXml(layout.token.alt || "image")}</title></image>`,
+      );
+    }
+  }
+
   // Text element with tspan segments
   parts.push(
     `<text text-anchor="start" dominant-baseline="central" x="${textStartX}" fill="${textColor}" font-size="${fontSize}" font-weight="${fontWeight}" font-family="${fontFamily}">`,
   );
   for (const layout of layouts) {
     parts.push(
-      tokenToSvgTspan(layout.token, plugins, highlightTextColor, pngSafe),
+      tokenToSvgTspan(layout, plugins, highlightTextColor, pngSafe),
     );
   }
   parts.push(`</text>`);
@@ -375,11 +401,12 @@ export function buildSvgNodeTextString(
 }
 
 function tokenToSvgTspan(
-  token: InlineToken,
+  layout: TokenLayout,
   plugins?: MindMapPlugin[],
   highlightTextColor?: string,
   pngSafe?: boolean,
 ): string {
+  const { token } = layout;
   switch (token.type) {
     case "bold":
       return `<tspan font-weight="700">${escapeXml(token.content)}</tspan>`;
@@ -394,17 +421,14 @@ function tokenToSvgTspan(
     case "link":
       return `<a href="${escapeXml(token.url)}" target="_blank"><tspan fill="#2563EB" text-decoration="underline">${escapeXml(token.text)}</tspan></a>`;
     case "image":
-      return `<tspan font-style="italic">[${escapeXml(token.alt || "image")}]</tspan>`;
+      return `<tspan dx="${layout.width}"></tspan>`;
     case "latex-inline":
     case "latex-block": {
       // Try plugin exportInlineToken first
       if (plugins) {
         for (const p of plugins) {
           if (p.exportInlineToken) {
-            const result = p.exportInlineToken(
-              { token, x: 0, width: 0 },
-              pngSafe,
-            );
+            const result = p.exportInlineToken(layout, pngSafe);
             if (result) return result;
           }
         }
@@ -469,13 +493,21 @@ export function buildSvgTextLineString(
     }
   }
 
+  for (const layout of layouts) {
+    if (layout.token.type === "image") {
+      parts.push(
+        `<image class="mindmap-inline-image" href="${escapeXml(layout.token.url)}" x="${startX + layout.x}" y="${y - INLINE_IMAGE_HEIGHT / 2}" width="${layout.width}" height="${INLINE_IMAGE_HEIGHT}" preserveAspectRatio="xMidYMid meet"><title>${escapeXml(layout.token.alt || "image")}</title></image>`,
+      );
+    }
+  }
+
   // Text element with tspan segments
   const opacityAttr = opacity !== undefined ? ` opacity="${opacity}"` : "";
   parts.push(
     `<text x="${startX}" y="${y}" text-anchor="start" dominant-baseline="central" fill="${textColor}" font-size="${fontSize}" font-weight="${fontWeight}" font-family="${fontFamily}"${opacityAttr}>`,
   );
   for (const layout of layouts) {
-    parts.push(tokenToSvgTspan(layout.token, plugins, highlightTextColor));
+    parts.push(tokenToSvgTspan(layout, plugins, highlightTextColor));
   }
   parts.push(`</text>`);
 

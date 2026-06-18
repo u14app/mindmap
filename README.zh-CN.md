@@ -40,7 +40,9 @@
 - **只读模式** — 仅显示，支持平移/缩放/选择但不可编辑；适合演示和嵌入
 - **多根节点** — 在同一画布上构建多棵独立的树
 - **拖拽排序** — 拖拽重新排列兄弟节点；拖拽根节点的子节点跨越中线以重新平衡两侧
-- **键盘快捷键** — Enter 创建、Delete 删除、Cmd+C/V 复制粘贴、Shift+ 快捷键控制缩放和布局
+- **撤销 / 重做** — 为可视化编辑、导入、拖拽排序、剪切/粘贴和程序化替换提供画布级历史
+- **搜索与标签筛选** — 搜索节点、跳转匹配项，并在保留祖先上下文的同时淡化非匹配标签分支
+- **键盘快捷键** — 方向键导航、Tab/Shift+Enter 添加子/兄弟节点、Enter/F2 编辑、Delete 删除、Cmd/Ctrl+Z 撤销、Cmd+C/V 复制粘贴、Shift+ 快捷键控制缩放和布局
 - **Markdown 输入输出** — 输入 Markdown 列表，输出思维导图（非常适合 AI 流式输出）
 - **国际化** — 自动检测浏览器语言；内置中文和英文，支持通过 props 完全自定义
 - **暗色模式** — 自动检测 `prefers-color-scheme`，也可显式设置 `light` / `dark`
@@ -49,7 +51,7 @@
 - **右键菜单** — 右键添加根节点、导入数据、导出或更改布局
 - **布局模式** — 左侧、右侧或两侧均衡布局
 - **移动端优化** — 完整的触控支持，单指平移/拖拽，双指捏合缩放，以内容为中心
-- **工具栏控制** — 通过 `toolbar` prop 显示/隐藏缩放控件
+- **工具栏控制** — 通过 `toolbar` prop 显示/隐藏缩放、历史、搜索和标签控件
 - **极小体积** — 除 React 外零运行时依赖
 
 ## 安装
@@ -411,12 +413,12 @@ function App() {
 <MindMap data={data} toolbar={false} />;
 
 {
-  /* 隐藏缩放控件（文本模式和全屏按钮保持可见） */
+  /* 隐藏缩放控件，同时保留历史/搜索/标签控件 */
 }
 <MindMap data={data} toolbar={{ zoom: false }} />;
 ```
 
-工具栏包括缩放控件（左下角）和文本模式/全屏切换按钮（右下角）。`toolbar` prop 控制缩放控件的可见性；文本模式和全屏按钮始终可用。
+工具栏包括缩放/历史控件（左下角）、搜索和标签筛选（左上角），以及文本模式/全屏切换按钮（右下角）。`toolbar` prop 支持 `zoom`、`history`、`search` 和 `tags` 标志；文本模式和全屏按钮始终可用。
 
 ### 移动端 / 触控支持
 
@@ -459,7 +461,9 @@ function App() {
 ```
 
 - `[文本](url)` — 节点文本变为可点击的超链接。
-- `![替代文本](路径)` — 在节点内嵌入图片。
+- `![替代文本](路径)` — 使用 SVG `<image>` 元素在节点内嵌入图片。
+
+> PNG 导出遵循浏览器 Canvas 安全规则。跨域图片可能需要 CORS 响应头或 data URL 才能正确导出。
 
 ### 任务状态
 
@@ -493,7 +497,7 @@ function App() {
   - 分类
   - 回归
 - 无监督学习
-  %% TODO: 添加更多示例
+  %% 其他范式可继续写在这里但不会渲染
   - 聚类
 ```
 
@@ -590,17 +594,26 @@ theme: dark
 | `locale`           | `string`                        | _自动_       | UI 语言（自动检测，或 `'zh-CN'`、`'en-US'`、自定义）                       |
 | `messages`         | `Partial<MindMapMessages>`      | -            | 覆盖任意 UI 文本字符串                                                     |
 | `readonly`         | `boolean`                       | `false`      | 仅显示模式（不可编辑、不可创建）                                           |
-| `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | 显示/隐藏缩放控件                                                          |
+| `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | 显示/隐藏缩放、历史、搜索和标签控件                                        |
 | `ai`               | `MindMapAIConfig`               | -            | AI 生成配置（API 地址、密钥、模型、附件类型）                              |
+| `selectedNodeId`   | `string \| null`                | -            | 受控选中节点 id                                                            |
+| `searchQuery`      | `string`                        | -            | 受控搜索文本                                                               |
+| `activeTags`       | `string[]`                      | -            | 受控标签筛选                                                               |
 | `plugins`          | `MindMapPlugin[]`               | `allPlugins` | 启用的扩展语法插件                                                         |
 | `textEditor`       | `ComponentType`                 | -            | 传入 `MindMapTextEditor` 以启用文本编辑模式。可选引入，支持 tree-shaking。 |
 | `onDataChange`     | `(data: MindMapData[]) => void` | -            | 用户交互修改树时调用                                                       |
+| `onSelectedNodeChange` | `(nodeId: string \| null) => void` | -    | 选中节点变化时调用                                                         |
+| `onSearchChange`   | `(query: string) => void`       | -            | 搜索文本变化时调用                                                         |
+| `onActiveTagsChange` | `(tags: string[]) => void`    | -            | 标签筛选变化时调用                                                         |
 
 ### ToolbarConfig
 
 ```ts
 interface ToolbarConfig {
   zoom?: boolean; // 显示缩放控件（默认：true）
+  history?: boolean; // 显示撤销/重做控件（默认：true）
+  search?: boolean; // 显示搜索控件（默认：true）
+  tags?: boolean; // 显示标签筛选（默认：true）
 }
 ```
 
@@ -615,6 +628,9 @@ interface MindMapAIConfig {
   model: string; // 模型名称（如 "gpt-5"）
   systemPrompt?: string; // 自定义系统提示词（内置默认值）
   attachments?: AIAttachmentType[]; // 允许的附件类型（默认：[]）
+  maxAttachmentSize?: number; // 单文件字节限制（默认：5MB）
+  headers?: Record<string, string>; // 额外请求头
+  request?: (payload: MindMapAIRequestPayload) => Promise<Response>; // 自定义代理请求
 }
 ```
 
@@ -625,6 +641,9 @@ interface MindMapAIConfig {
 | `model`        | `string`             | 是   | 模型标识符（如 `gpt-5`、`deepseek-chat`）                                            |
 | `systemPrompt` | `string`             | 否   | 覆盖内置的思维导图生成提示词                                                         |
 | `attachments`  | `AIAttachmentType[]` | 否   | 启用文件上传：`"text"`（text/\*）、`"image"`（image/\*）、`"pdf"`（application/pdf） |
+| `maxAttachmentSize` | `number`        | 否   | 单个上传文件最大字节数，默认 5 MB                                                    |
+| `headers`      | `Record<string, string>` | 否 | 默认请求的额外请求头                                                                 |
+| `request`      | `(payload) => Promise<Response>` | 否 | 自定义请求适配器，适合接入服务端代理端点                                             |
 
 ### Ref 方法
 
@@ -633,9 +652,18 @@ interface MindMapAIConfig {
 | `exportToSVG()`     | `string`        | 将思维导图导出为 SVG 字符串  |
 | `exportToPNG()`     | `Promise<Blob>` | 渲染高 DPI PNG Blob          |
 | `exportToOutline()` | `string`        | 将树序列化为 Markdown 列表   |
+| `getMarkdown()`     | `string`        | 将树序列化为 Markdown        |
 | `getData()`         | `MindMapData[]` | 返回当前树数据               |
-| `setData(data)`     | `void`          | 替换树数据                   |
-| `setMarkdown(md)`   | `void`          | 解析 Markdown 并替换树       |
+| `setData(data)`     | `void`          | 通过编辑历史替换树数据，并触发 `onDataChange` |
+| `setMarkdown(md)`   | `void`          | 解析 Markdown、应用有效 frontmatter，并触发 `onDataChange` |
+| `importMarkdown(md)` | `void`         | 通过编辑历史导入 Markdown    |
+| `importData(data)`  | `void`          | 通过编辑历史导入 JSON 数据   |
+| `selectNode(id)`    | `void`          | 选中节点，传入 `null` 清空选择 |
+| `focusNode(id)`     | `void`          | 选中并平移到指定节点         |
+| `expandNode(id)`    | `void`          | 展开折叠节点                 |
+| `collapseNode(id)`  | `void`          | 标记并折叠节点               |
+| `undo()` / `redo()` | `void`          | 在编辑历史中前进/后退        |
+| `canUndo()` / `canRedo()` | `boolean` | 返回当前历史可用状态         |
 | `fitView()`         | `void`          | 重置缩放和平移以适应所有节点 |
 | `setDirection(dir)` | `void`          | 更改布局方向                 |
 
@@ -655,6 +683,8 @@ interface MindMapAIConfig {
 | `messages`         | `Partial<MindMapMessages>`      | -        | 覆盖任意 UI 文本字符串                               |
 | `toolbar`          | `boolean \| ToolbarConfig`      | `true`   | 显示/隐藏缩放控件                                    |
 | `plugins`          | `MindMapPlugin[]`               | -        | 启用的扩展语法插件                                   |
+| `searchQuery`      | `string`                        | -        | 高亮匹配节点                                         |
+| `activeTags`       | `string[]`                      | -        | 淡化匹配标签分支之外的节点                           |
 | `onEvent`          | `(event: MindMapEvent) => void` | -        | 缩放、方向切换或节点选择事件回调                     |
 
 #### MindMapViewerRef 方法
@@ -694,12 +724,17 @@ interface CrossLink {
 
 | 快捷键                 | 操作                     |
 | ---------------------- | ------------------------ |
-| `Enter`                | 在选中节点下创建子节点   |
+| `↑` `↓` `←` `→`        | 在节点间移动选择         |
+| `Tab`                  | 在选中节点下创建子节点   |
+| `Shift + Enter`        | 在选中节点后创建兄弟节点 |
+| `Enter` / `F2`         | 编辑选中的节点           |
 | `Delete` / `Backspace` | 删除选中的节点           |
 | `双击`                 | 编辑节点文本             |
 | `Cmd/Ctrl + C`         | 复制子树                 |
 | `Cmd/Ctrl + X`         | 剪切子树                 |
 | `Cmd/Ctrl + V`         | 粘贴子树作为子节点       |
+| `Cmd/Ctrl + Z`         | 撤销可视化编辑           |
+| `Cmd/Ctrl + Shift + Z` | 重做可视化编辑           |
 | `Escape`               | 关闭右键菜单 / 对话框    |
 | `Shift + +`            | 放大                     |
 | `Shift + -`            | 缩小                     |
@@ -752,6 +787,12 @@ import {
 
   // 轻量查看器
   MindMapViewer, // 只读查看器组件（也可通过 @xiangfa/mindmap/viewer 导入）
+
+  // 高级类型
+  type LayoutNode,
+  type Edge,
+  type MindMapAIRequestPayload,
+  type MindMapAIContentPart,
 } from "@xiangfa/mindmap";
 ```
 
@@ -776,8 +817,6 @@ pnpm lint       # 运行代码检查
 您可以在这些社区提问或分享您对 Open MindMap 的想法与需求
 
 [LinuxDo](https://linux.do)
-
-[V2EX](https://www.v2ex.com)
 
 ## 许可证
 

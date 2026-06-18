@@ -26,13 +26,14 @@ export function updateNodeText(
 export function updateNodeFields(
   node: MindMapData,
   id: string,
-  fields: Partial<Pick<MindMapData, 'text' | 'taskStatus' | 'remark'>>,
+  fields: Partial<Pick<MindMapData, 'text' | 'taskStatus' | 'remark' | 'collapsed'>>,
 ): MindMapData {
   if (node.id === id) {
     const updated = { ...node, ...fields }
     // Only clear optional fields when explicitly passed as undefined in fields
     if ('taskStatus' in fields && fields.taskStatus === undefined) delete updated.taskStatus
     if ('remark' in fields && fields.remark === undefined) delete updated.remark
+    if ('collapsed' in fields && fields.collapsed === undefined) delete updated.collapsed
     return updated
   }
   if (!node.children) return node
@@ -65,6 +66,24 @@ export function removeNode(node: MindMapData, targetId: string): MindMapData {
   return {
     ...node,
     children: newChildren.length > 0 ? newChildren : undefined,
+  }
+}
+
+export function addSibling(
+  node: MindMapData,
+  targetId: string,
+  sibling: MindMapData,
+): MindMapData {
+  if (!node.children) return node
+  const idx = node.children.findIndex((c) => c.id === targetId)
+  if (idx !== -1) {
+    const newChildren = [...node.children]
+    newChildren.splice(idx + 1, 0, sibling)
+    return { ...node, children: newChildren }
+  }
+  return {
+    ...node,
+    children: node.children.map((c) => addSibling(c, targetId, sibling)),
   }
 }
 
@@ -147,7 +166,7 @@ export function updateNodeTextMulti(
 export function updateNodeFieldsMulti(
   roots: MindMapData[],
   id: string,
-  fields: Partial<Pick<MindMapData, 'text' | 'taskStatus' | 'remark'>>,
+  fields: Partial<Pick<MindMapData, 'text' | 'taskStatus' | 'remark' | 'collapsed'>>,
 ): MindMapData[] {
   return roots.map((root) => updateNodeFields(root, id, fields))
 }
@@ -158,6 +177,21 @@ export function addChildMulti(
   child: MindMapData,
 ): MindMapData[] {
   return roots.map((root) => addChild(root, parentId, child))
+}
+
+export function addSiblingMulti(
+  roots: MindMapData[],
+  targetId: string,
+  sibling: MindMapData,
+): MindMapData[] {
+  // If the target is itself a root, insert the sibling as a new root after it.
+  const idx = roots.findIndex((root) => root.id === targetId)
+  if (idx !== -1) {
+    const next = [...roots]
+    next.splice(idx + 1, 0, sibling)
+    return next
+  }
+  return roots.map((root) => addSibling(root, targetId, sibling))
 }
 
 export function removeNodeMulti(

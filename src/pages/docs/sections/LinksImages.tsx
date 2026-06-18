@@ -20,9 +20,13 @@ export default function LinksImages() {
             </li>
             <li>
               <code className="text-xs">![alt](path)</code> — Embeds an image
-              within a node.
+              within a node using an SVG image element.
             </li>
           </ul>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            PNG export follows browser canvas security rules. Cross-origin
+            images may require CORS headers or data URLs.
+          </p>
     </>
   );
 }

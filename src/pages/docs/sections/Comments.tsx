@@ -19,7 +19,7 @@ Machine Learning
   - Classification
   - Regression
 - Unsupervised Learning
-  %% TODO: add more examples
+  %% Additional paradigms stay hidden from the map
   - Clustering`}</CodeBlock>
 
           <p className="text-sm text-slate-500 dark:text-slate-500 mt-3 mb-4">

@@ -11,5 +11,6 @@
     "skipLibCheck": true,
     "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/components/MindMap"]
+  "include": ["src/components/MindMap"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

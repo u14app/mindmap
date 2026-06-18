@@ -2,7 +2,7 @@ import type { MindMapData, LayoutNode, Edge, LayoutDirection, TaskStatus } from 
 import type { MindMapPlugin } from '../plugins/types'
 import type { LayoutContext } from '../plugins/types'
 import { BRANCH_COLORS, THEME } from './theme'
-import { stripInlineMarkdown } from './inline-markdown'
+import { INLINE_IMAGE_HEIGHT, INLINE_IMAGE_WIDTH, hasInlineImage, stripInlineMarkdown } from './inline-markdown'
 import {
   runAdjustNodeSize,
   runFilterChildren,
@@ -38,16 +38,33 @@ interface InternalNode {
 }
 
 let _ctx: CanvasRenderingContext2D | null = null
-function getCtx(): CanvasRenderingContext2D {
-  if (!_ctx) {
-    const canvas = document.createElement('canvas')
-    _ctx = canvas.getContext('2d')!
+let _ctxResolved = false
+function getCtx(): CanvasRenderingContext2D | null {
+  if (!_ctxResolved) {
+    _ctxResolved = true
+    // Canvas measurement needs a DOM. In SSR / Node / test environments there
+    // is no `document` (or no 2d context), so we fall back to estimation below.
+    if (typeof document !== 'undefined') {
+      _ctx = document.createElement('canvas').getContext('2d')
+    }
   }
   return _ctx
 }
 
+// Rough per-character width estimate (× fontSize) used when canvas measurement
+// is unavailable. CJK glyphs are ~full-width, so they are weighted separately.
+function estimateTextWidth(text: string, fontSize: number): number {
+  let width = 0
+  for (const ch of text) {
+    // CJK Unified Ideographs / Hiragana / Katakana / full-width forms ≈ 1em.
+    width += /[\u3000-\u9fff\uff00-\uffef]/.test(ch) ? fontSize : fontSize * 0.6
+  }
+  return width
+}
+
 function measureText(text: string, fontSize: number, fontWeight: number, fontFamily?: string): number {
   const ctx = getCtx()
+  if (!ctx) return estimateTextWidth(text, fontSize)
   ctx.font = `${fontWeight} ${fontSize}px ${fontFamily || THEME.root.fontFamily}`
   return ctx.measureText(text).width
 }
@@ -102,6 +119,11 @@ function buildInternal(
   const textWidth = data.placeholder ? 60 : measureFormattedText(data.text, fontSize, fontWeight, data.taskStatus, !!data.remark)
   let width = textWidth + paddingH * 2
   let height = fontSize + paddingV * 2
+
+  if (hasInlineImage(data.text)) {
+    width = Math.max(width, INLINE_IMAGE_WIDTH + paddingH * 2)
+    height = Math.max(height, INLINE_IMAGE_HEIGHT + paddingV * 2)
+  }
 
   // Plugin: adjust node size (multi-line, tags, etc.)
   if (plugins && plugins.length > 0) {

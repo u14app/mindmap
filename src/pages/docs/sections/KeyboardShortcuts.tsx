@@ -18,9 +18,27 @@ export default function KeyboardShortcuts() {
               <tbody>
                 <tr>
                   <td>
-                    <code>Enter</code>
+                    <code>↑</code> <code>↓</code> <code>←</code> <code>→</code>
+                  </td>
+                  <td>Move selection between nodes</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>Tab</code>
                   </td>
                   <td>Create child node under selected node</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>Shift + Enter</code>
+                  </td>
+                  <td>Create sibling node after selected node</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>Enter</code> / <code>F2</code>
+                  </td>
+                  <td>Edit selected node text</td>
                 </tr>
                 <tr>
                   <td>
@@ -51,6 +69,18 @@ export default function KeyboardShortcuts() {
                     <code>Cmd/Ctrl + V</code>
                   </td>
                   <td>Paste subtree as child</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>Cmd/Ctrl + Z</code>
+                  </td>
+                  <td>Undo visual edit</td>
+                </tr>
+                <tr>
+                  <td>
+                    <code>Cmd/Ctrl + Shift + Z</code>
+                  </td>
+                  <td>Redo visual edit</td>
                 </tr>
                 <tr>
                   <td>

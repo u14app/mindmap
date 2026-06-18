@@ -113,7 +113,7 @@ export default function APIReference() {
                   <td>
                     <code>true</code>
                   </td>
-                  <td>Show/hide zoom controls</td>
+                  <td>Show/hide zoom, history, search, and tag controls</td>
                 </tr>
                 <tr>
                   <td>
@@ -133,6 +133,24 @@ export default function APIReference() {
                     </a>
                     )
                   </td>
+                </tr>
+                <tr>
+                  <td><code>selectedNodeId</code></td>
+                  <td><code>string | null</code></td>
+                  <td>-</td>
+                  <td>Controlled selected node id</td>
+                </tr>
+                <tr>
+                  <td><code>searchQuery</code></td>
+                  <td><code>string</code></td>
+                  <td>-</td>
+                  <td>Controlled search text</td>
+                </tr>
+                <tr>
+                  <td><code>activeTags</code></td>
+                  <td><code>string[]</code></td>
+                  <td>-</td>
+                  <td>Controlled active tag filters</td>
                 </tr>
                 <tr>
                   <td>
@@ -175,6 +193,9 @@ export default function APIReference() {
           <SubHeading>ToolbarConfig</SubHeading>
           <CodeBlock lang="typescript">{`interface ToolbarConfig {
   zoom?: boolean; // Show zoom controls (default: true)
+  history?: boolean; // Show undo/redo controls (default: true)
+  search?: boolean; // Show search controls (default: true)
+  tags?: boolean; // Show tag filter chips (default: true)
 }`}</CodeBlock>
 
           <SubHeading>Ref Methods</SubHeading>
@@ -216,6 +237,11 @@ export default function APIReference() {
                   <td>Serialize tree to Markdown list</td>
                 </tr>
                 <tr>
+                  <td><code>getMarkdown()</code></td>
+                  <td><code>string</code></td>
+                  <td>Serialize tree to Markdown</td>
+                </tr>
+                <tr>
                   <td>
                     <code>getData()</code>
                   </td>
@@ -231,7 +257,7 @@ export default function APIReference() {
                   <td>
                     <code>void</code>
                   </td>
-                  <td>Replace tree data</td>
+                  <td>Replace tree data through editor history and emit <code>onDataChange</code></td>
                 </tr>
                 <tr>
                   <td>
@@ -240,7 +266,32 @@ export default function APIReference() {
                   <td>
                     <code>void</code>
                   </td>
-                  <td>Parse Markdown and replace tree</td>
+                  <td>Parse Markdown, apply valid frontmatter, and emit <code>onDataChange</code></td>
+                </tr>
+                <tr>
+                  <td><code>importMarkdown(md)</code></td>
+                  <td><code>void</code></td>
+                  <td>Import Markdown through editor history</td>
+                </tr>
+                <tr>
+                  <td><code>importData(data)</code></td>
+                  <td><code>void</code></td>
+                  <td>Import JSON data through editor history</td>
+                </tr>
+                <tr>
+                  <td><code>selectNode(id)</code></td>
+                  <td><code>void</code></td>
+                  <td>Select a node or clear selection</td>
+                </tr>
+                <tr>
+                  <td><code>focusNode(id)</code></td>
+                  <td><code>void</code></td>
+                  <td>Select and pan to a node</td>
+                </tr>
+                <tr>
+                  <td><code>undo() / redo()</code></td>
+                  <td><code>void</code></td>
+                  <td>Move through editor history</td>
                 </tr>
                 <tr>
                   <td>
@@ -344,7 +395,7 @@ interface CrossLink {
                   <td><code>toolbar</code></td>
                   <td><code>boolean | ToolbarConfig</code></td>
                   <td><code>true</code></td>
-                  <td>Show/hide zoom controls</td>
+                  <td>Show/hide zoom, history, search, and tag controls</td>
                 </tr>
                 <tr>
                   <td><code>plugins</code></td>

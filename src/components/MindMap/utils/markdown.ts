@@ -313,10 +313,21 @@ export function parseMarkdownList(md: string, plugins?: MindMapPlugin[]): MindMa
   // Stack tracks parent chain: [node, level]
   const stack: [MindMapData, number][] = [[root, 0]]
 
+  // Shallowest indent among the post-root items = the root's direct children.
+  // Normalizing against it makes both authoring conventions round-trip:
+  //   "- Root\n  - A\n    - A1"  (children nested under the root bullet)
+  //   "Root\n- A\n  - A1"        (root as a title, children as flat bullets)
+  // and keeps deeper levels correctly relative so structure survives a
+  // serialize → parse round-trip regardless of depth.
+  let minChildLevel = Infinity
+  for (let i = 1; i < normalized.length; i++) {
+    if (normalized[i].level < minChildLevel) minChildLevel = normalized[i].level
+  }
+
   for (let i = 1; i < normalized.length; i++) {
     const { level, text, taskStatus, remarkLines, _item } = normalized[i]
-    // Treat remaining top-level items (level 0) as root's direct children (level 1)
-    const effectiveLevel = level === 0 ? 1 : level
+    // Re-base levels so the shallowest child sits at level 1 directly under root.
+    const effectiveLevel = level - minChildLevel + 1
 
     let node: MindMapData = {
       id: 'md-tmp',

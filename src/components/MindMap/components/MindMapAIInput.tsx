@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import type { MindMapAIConfig } from "../types";
+import type { MindMapAIConfig, MindMapAIContentPart } from "../types";
 import type { ThemeColors } from "../utils/theme";
 import type { MindMapMessages } from "../utils/i18n";
 import {
@@ -99,23 +99,25 @@ function buildAcceptString(
   return parts.join(",");
 }
 
-type ContentPart =
-  | { type: "text"; text: string }
-  | { type: "image_url"; image_url: { url: string } };
+const DEFAULT_MAX_ATTACHMENT_SIZE = 5 * 1024 * 1024;
 
 function buildUserContent(
   input: string,
   files: AttachedFile[],
-): string | ContentPart[] {
+): string | MindMapAIContentPart[] {
   if (files.length === 0) return input;
 
-  const parts: ContentPart[] = [{ type: "text", text: input }];
+  const parts: MindMapAIContentPart[] = [{ type: "text", text: input }];
 
   for (const file of files) {
     if (file.type.startsWith("image/")) {
       parts.push({ type: "image_url", image_url: { url: file.base64 } });
+    } else if (file.type === "application/pdf") {
+      parts.push({
+        type: "text",
+        text: `[File: ${file.name}]\nPDF attachment (${file.base64.length} base64 characters). If the provider supports PDFs, handle this attachment in a custom request adapter.`,
+      });
     } else {
-      // text/* or pdf: decode base64 and append as text
       const textContent = atob(file.base64.split(",")[1] || "");
       parts.push({
         type: "text",
@@ -125,6 +127,22 @@ function buildUserContent(
   }
 
   return parts;
+}
+
+function isAllowedAttachment(
+  file: File,
+  attachments: MindMapAIConfig["attachments"],
+): boolean {
+  if (!attachments || attachments.length === 0) return false;
+  if (attachments.includes("image") && file.type.startsWith("image/")) return true;
+  if (attachments.includes("pdf") && file.type === "application/pdf") return true;
+  if (attachments.includes("text")) {
+    return (
+      file.type.startsWith("text/") ||
+      /\.(json|js|ts|xml|ya?ml|sql|sh|md)$/i.test(file.name)
+    );
+  }
+  return false;
 }
 
 function stripThinkBlocks(text: string): string {
@@ -202,24 +220,39 @@ export function MindMapAIInput({
         ? `${systemPrompt}\n\n#Current Mind Map\nThe user already has the following mind map. They may ask you to modify, expand, or optimize it. If the user's request is about the existing content, use it as the base and output the updated version. If the request is about a new topic, generate a fresh mind map.\n\n\`\`\`\n${currentMarkdown.trim()}\n\`\`\``
         : systemPrompt;
 
+      const messagesPayload = [
+        { role: "system" as const, content: systemContent },
+        { role: "user" as const, content: userContent },
+      ];
+
       const body = JSON.stringify({
         model: config.model,
-        messages: [
-          { role: "system", content: systemContent },
-          { role: "user", content: userContent },
-        ],
+        messages: messagesPayload,
         stream: true,
       });
 
-      const res = await fetch(config.apiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${config.apiKey}`,
-        },
-        body,
-        signal: controller.signal,
-      });
+      const headers = {
+        ...config.headers,
+        ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+        "Content-Type": "application/json",
+      };
+
+      const res = config.request
+        ? await config.request({
+          apiUrl: config.apiUrl,
+          apiKey: config.apiKey,
+          model: config.model,
+          messages: messagesPayload,
+          headers,
+          body,
+          signal: controller.signal,
+        })
+        : await fetch(config.apiUrl, {
+          method: "POST",
+          headers,
+          body,
+          signal: controller.signal,
+        });
 
       if (!res.ok) {
         throw new Error(`API error: ${res.status}`);
@@ -297,7 +330,20 @@ export function MindMapAIInput({
       const files = e.target.files;
       if (!files) return;
 
+      const maxSize = config.maxAttachmentSize ?? DEFAULT_MAX_ATTACHMENT_SIZE;
       Array.from(files).forEach((file) => {
+        if (!isAllowedAttachment(file, config.attachments)) {
+          const msg = `${messages.aiUnsupportedFile}: ${file.name}`;
+          setError(msg);
+          onError(msg);
+          return;
+        }
+        if (file.size > maxSize) {
+          const msg = `${messages.aiFileTooLarge}: ${file.name}`;
+          setError(msg);
+          onError(msg);
+          return;
+        }
         const reader = new FileReader();
         reader.onload = () => {
           setAttachedFiles((prev) => [
@@ -315,7 +361,7 @@ export function MindMapAIInput({
       // Reset so same file can be re-selected
       e.target.value = "";
     },
-    [],
+    [config.attachments, config.maxAttachmentSize, messages, onError],
   );
 
   const removeFile = useCallback((index: number) => {

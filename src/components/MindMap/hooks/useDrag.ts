@@ -113,13 +113,13 @@ export function useDrag({
                 const result = moveChildToSide(root, currentFloatingId, targetSide, si)
                 if (result) {
                   lastSwapTimeRef.current = now
+                  updateData((prev) =>
+                    prev.map((r) => (r.id === rootId ? result.data : r)),
+                  )
                   setSplitIndices((prev) => ({
                     ...prev,
                     [rootId]: result.newSplitIndex,
                   }))
-                  updateData((prev) =>
-                    prev.map((r) => (r.id === rootId ? result.data : r)),
-                  )
                   return
                 }
               }
@@ -405,8 +405,8 @@ export function useDrag({
                   const result = moveChildToSide(root, state.touchNodeId, targetSide, si)
                   if (result) {
                     lastSwapTimeRef.current = now
-                    setSplitIndices((prev) => ({ ...prev, [rootId]: result.newSplitIndex }))
                     updateData((prev) => prev.map((r) => (r.id === rootId ? result.data : r)))
+                    setSplitIndices((prev) => ({ ...prev, [rootId]: result.newSplitIndex }))
                     return
                   }
                 }

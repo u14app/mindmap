@@ -51,6 +51,26 @@ export function useNodeEdit({
     [],
   )
 
+  // Begin editing a node by id (context menu / keyboard). Seeds the input with
+  // the same task-status prefix that a double-click would, so behavior matches.
+  const beginEdit = useCallback(
+    (nodeId: string) => {
+      const node = nodeMap[nodeId]
+      if (!node) return
+      const taskPrefix =
+        node.taskStatus === 'done'
+          ? '[x] '
+          : node.taskStatus === 'doing'
+            ? '[-] '
+            : node.taskStatus === 'todo'
+              ? '[ ] '
+              : ''
+      setEditingId(nodeId)
+      setEditText(taskPrefix + node.text)
+    },
+    [nodeMap],
+  )
+
   const commitEdit = useCallback(() => {
     if (editingId) {
       const trimmed = editText.trim()
@@ -84,6 +104,7 @@ export function useNodeEdit({
     pendingEditId,
     setPendingEditId,
     handleNodeDoubleClick,
+    beginEdit,
     commitEdit,
     cancelEdit,
   }

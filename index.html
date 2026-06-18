@@ -23,14 +23,6 @@
     <meta name="twitter:image" content="https://mindmap.u14.app/screenshot.png" />
     <title>Open MindMap - Interactive Mind Map Component for React | AI Streaming Ready</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link
-      href="https://fonts.googleapis.cn/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.cn/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-      rel="stylesheet"
-    />
     <script>
       tailwind.config = {
         darkMode: "media",
@@ -86,9 +78,9 @@
               "tertiary-container": "#c64f00",
             },
             fontFamily: {
-              headline: ["Inter", "sans-serif"],
-              body: ["Inter", "sans-serif"],
-              label: ["Inter", "sans-serif"],
+              headline: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
+              body: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
+              label: ["system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
             },
             borderRadius: {
               DEFAULT: "0.5rem",
@@ -104,20 +96,14 @@
     </script>
     <style>
       body {
-        font-family: "Inter", sans-serif;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
         -webkit-font-smoothing: antialiased;
         letter-spacing: -0.01em;
       }
       .glass-effect {
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-      }
-      .material-symbols-outlined {
-        font-variation-settings:
-          "FILL" 0,
-          "wght" 400,
-          "GRAD" 0,
-          "opsz" 24;
       }
       .hero-gradient {
         background: radial-gradient(

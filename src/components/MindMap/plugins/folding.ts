@@ -16,11 +16,11 @@ export const foldingPlugin: MindMapPlugin = {
 
   filterChildren(node, children, ctx) {
     if (!ctx.readonly) return children
-    if (!node.collapsed) return children
-    // Check fold overrides: if user has toggled this node open, show children
-    const overridden = ctx.foldOverrides[node.id]
-    if (overridden) return children
-    // Collapsed and not overridden: hide children
-    return []
+    // A runtime fold override is authoritative when present: true = expanded,
+    // false = collapsed — regardless of the node's persisted `collapsed` flag.
+    const override = ctx.foldOverrides[node.id]
+    if (override !== undefined) return override ? children : []
+    // No override: fall back to the persisted (markdown `+`) collapsed flag.
+    return node.collapsed ? [] : children
   },
 }

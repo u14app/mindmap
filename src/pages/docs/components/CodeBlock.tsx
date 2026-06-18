@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Check, Copy } from "lucide-react";
 import { highlightTsx, highlightBash, highlightCss } from "../highlight";
 import { highlightMindmapHTML } from "../../../components/MindMap/utils/highlight";
 
@@ -32,9 +33,7 @@ export function CodeBlock({ children, lang }: { children: string; lang?: string 
         <code>{highlighted}</code>
       </pre>
       <button onClick={handleCopy} className="docs-copy-btn">
-        <span className="material-symbols-outlined text-[16px]">
-          {copied ? "check" : "content_copy"}
-        </span>
+        {copied ? <Check size={16} /> : <Copy size={16} />}
       </button>
     </div>
   );

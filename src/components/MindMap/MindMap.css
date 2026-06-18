@@ -197,6 +197,15 @@
   background: rgba(128, 128, 128, 0.2);
 }
 
+.mindmap-ctrl-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.mindmap-ctrl-btn:disabled:hover {
+  background: transparent;
+}
+
 .mindmap-ctrl-pct {
   display: flex;
   align-items: center;
@@ -233,6 +242,96 @@
   z-index: 20;
   background: var(--mindmap-controls-bg);
   color: var(--mindmap-controls-text);
+}
+
+.mindmap-search-controls {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: min(360px, calc(100% - 32px));
+  height: 40px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--mindmap-controls-bg);
+  color: var(--mindmap-controls-text);
+  box-sizing: border-box;
+}
+
+.mindmap-search-input {
+  min-width: 0;
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: 13px/1.4 system-ui, -apple-system, sans-serif;
+}
+
+.mindmap-search-input::placeholder {
+  opacity: 0.55;
+}
+
+.mindmap-search-count {
+  min-width: 46px;
+  text-align: right;
+  font-size: 11px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
+.mindmap-search-step {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.mindmap-tag-controls {
+  position: absolute;
+  top: 64px;
+  left: 16px;
+  right: 16px;
+  z-index: 19;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 76px;
+  overflow: auto;
+  pointer-events: none;
+}
+
+.mindmap-tag-filter {
+  pointer-events: auto;
+  border: 1px solid var(--mindmap-ctx-border);
+  background: var(--mindmap-controls-bg);
+  color: var(--mindmap-controls-text);
+  border-radius: 999px;
+  padding: 4px 9px;
+  font: 12px/1.2 system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    transform 0.15s;
+}
+
+.mindmap-tag-filter:hover {
+  background: var(--mindmap-controls-hover);
+}
+
+.mindmap-tag-filter.is-active {
+  border-color: var(--mindmap-root-bg);
+  background: color-mix(in srgb, var(--mindmap-root-bg) 18%, transparent);
+}
+
+.mindmap-tag-filter-clear {
+  opacity: 0.75;
 }
 
 /* Text editor for text mode */
@@ -325,6 +424,12 @@
 }
 
 .mindmap-ctx-item {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   padding: 8px 16px;
   cursor: pointer;
   font-size: 14px;
@@ -335,9 +440,21 @@
   white-space: nowrap;
 }
 
-.mindmap-ctx-item:hover {
+.mindmap-ctx-item:hover,
+.mindmap-ctx-item:focus-visible {
   filter: brightness(0.92);
   background: rgba(128, 128, 128, 0.1);
+  outline: none;
+}
+
+.mindmap-ctx-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mindmap-ctx-item:disabled:hover {
+  filter: none;
+  background: transparent;
 }
 
 .mindmap-ctx-arrow {
@@ -365,6 +482,10 @@
   background: var(--mindmap-ctx-bg);
   border-color: var(--mindmap-ctx-border);
   box-shadow: 0 4px 16px var(--mindmap-ctx-shadow);
+}
+
+.mindmap-ctx-submenu-host {
+  position: relative;
 }
 
 .mindmap-ctx-has-sub {
@@ -457,6 +578,89 @@
   background: rgba(128, 128, 128, 0.2);
 }
 
+.mindmap-import-dialog {
+  background: var(--mindmap-ctx-bg);
+  color: var(--mindmap-ctx-text);
+  border-color: var(--mindmap-ctx-border);
+}
+
+.mindmap-import-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.12);
+}
+
+.mindmap-import-segmented button {
+  height: 30px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: 13px/1 system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+}
+
+.mindmap-import-segmented button.is-active {
+  background: var(--mindmap-controls-bg);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.mindmap-import-textarea {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  box-sizing: border-box;
+  border: 1px solid var(--mindmap-ctx-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--mindmap-canvas-bg);
+  color: inherit;
+  outline: none;
+  font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.mindmap-import-textarea:focus {
+  border-color: var(--mindmap-root-bg);
+}
+
+.mindmap-import-error {
+  margin-top: 8px;
+  color: #ef4444;
+  font-size: 12px;
+}
+
+.mindmap-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.mindmap-dialog-primary,
+.mindmap-dialog-secondary {
+  height: 34px;
+  border-radius: 7px;
+  padding: 0 14px;
+  font: 13px/1 system-ui, -apple-system, sans-serif;
+  cursor: pointer;
+}
+
+.mindmap-dialog-primary {
+  border: none;
+  background: var(--mindmap-root-bg);
+  color: var(--mindmap-root-text);
+}
+
+.mindmap-dialog-secondary {
+  border: 1px solid var(--mindmap-ctx-border);
+  background: transparent;
+  color: inherit;
+}
+
 @media (max-width: 500px) {
   .mindmap-dialog-modal {
     padding: 16px;
@@ -494,6 +698,20 @@
 
   .mindmap-extra-controls {
     right: 12px;
+  }
+
+  .mindmap-search-controls {
+    top: 12px;
+    left: 12px;
+    width: calc(100% - 24px);
+    height: 36px;
+  }
+
+  .mindmap-tag-controls {
+    top: 56px;
+    left: 12px;
+    right: 12px;
+    max-height: 64px;
   }
 }
 
@@ -557,6 +775,26 @@
   max-width: 80px;
   vertical-align: middle;
   border-radius: 2px;
+}
+
+.mindmap-inline-image {
+  pointer-events: none;
+  clip-path: inset(0 round 4px);
+}
+
+.mindmap-node-filter-dimmed {
+  opacity: 0.22;
+}
+
+.mindmap-node-search-match .mindmap-node-bg {
+  stroke: var(--mindmap-highlight-bg);
+  stroke-width: 2;
+}
+
+.mindmap-node-active-match .mindmap-node-bg {
+  stroke: var(--mindmap-selection-stroke);
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px var(--mindmap-selection-fill));
 }
 
 /* Dark theme overrides for inline formatting */

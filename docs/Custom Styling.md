@@ -230,8 +230,8 @@ Every node and edge has a `data-branch-index` attribute (0–9) indicating which
 
 ```css
 .mindmap-container {
-  --mindmap-root-font-family: 'Inter', sans-serif;
-  --mindmap-node-font-family: 'Inter', sans-serif;
+  --mindmap-root-font-family: Georgia, "Times New Roman", serif;
+  --mindmap-node-font-family: system-ui, -apple-system, sans-serif;
   --mindmap-root-font-size: 24px;
   --mindmap-node-font-size: 14px;
 }

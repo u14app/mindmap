@@ -4,6 +4,7 @@ import type { ThemeColors } from "../utils/theme";
 import type { MindMapPlugin } from "../plugins/types";
 import type { TokenLayout } from "../utils/inline-markdown";
 import {
+  INLINE_IMAGE_HEIGHT,
   parseInlineMarkdown,
   computeTokenLayouts,
 } from "../utils/inline-markdown";
@@ -38,6 +39,7 @@ export interface MindMapNodeProps {
   onMouseDown: (e: React.MouseEvent, nodeId: string) => void;
   onClick: (e: React.MouseEvent, nodeId: string) => void;
   onDoubleClick: (e: React.MouseEvent, nodeId: string, text: string) => void;
+  onContextMenu?: (e: React.MouseEvent, nodeId: string) => void;
   onEditChange: (text: string) => void;
   onEditCommit: () => void;
   onEditCancel: () => void;
@@ -49,6 +51,9 @@ export interface MindMapNodeProps {
   onRemarkHover?: (nodeId: string | null) => void;
   onFoldToggle?: (nodeId: string) => void;
   expandDelay?: number;
+  isSearchMatch?: boolean;
+  isActiveMatch?: boolean;
+  isFilterDimmed?: boolean;
   latexRenderer?: LatexRenderer;
 }
 
@@ -142,9 +147,7 @@ function renderTokenTspan(
       );
     case "image":
       return (
-        <tspan key={key} className="mindmap-text-image" fontStyle="italic">
-          [{token.alt || "image"}]
-        </tspan>
+        <tspan key={key} className="mindmap-text-image" dx={layout.width} />
       );
     case "latex-inline":
     case "latex-block":
@@ -376,6 +379,25 @@ function SvgNodeContent({
         )}
       </text>
 
+      {layouts.map((layout, i) => {
+        const { token } = layout;
+        if (token.type !== "image") return null;
+        return (
+          <image
+            key={`image-${i}`}
+            className="mindmap-inline-image"
+            href={token.url}
+            x={textStartX + layout.x}
+            y={-INLINE_IMAGE_HEIGHT / 2}
+            width={layout.width}
+            height={INLINE_IMAGE_HEIGHT}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <title>{token.alt || "image"}</title>
+          </image>
+        );
+      })}
+
       {/* LaTeX foreignObject overlays (rendered outside <text> since SVG text can't contain foreignObject) */}
       {katexReady && latexRenderer &&
         layouts.map((layout, i) => {
@@ -485,6 +507,24 @@ function SvgNodeContent({
                   renderTokenTspan(layout, j, plugins, highlightTextColor),
                 )}
               </text>
+              {mlLayouts.map((layout, j) => {
+                const { token } = layout;
+                if (token.type !== "image") return null;
+                return (
+                  <image
+                    key={`ml-image-${i}-${j}`}
+                    className="mindmap-inline-image"
+                    href={token.url}
+                    x={mlStartX + layout.x}
+                    y={mlY - INLINE_IMAGE_HEIGHT / 2}
+                    width={layout.width}
+                    height={INLINE_IMAGE_HEIGHT}
+                    preserveAspectRatio="xMidYMid meet"
+                  >
+                    <title>{token.alt || "image"}</title>
+                  </image>
+                );
+              })}
               {/* LaTeX foreignObject overlays for multi-line content */}
               {katexReady && latexRenderer &&
                 mlLayouts.map((layout, j) => {
@@ -620,6 +660,7 @@ export function MindMapNode({
   onMouseDown,
   onClick,
   onDoubleClick,
+  onContextMenu,
   onEditChange,
   onEditCommit,
   onEditCancel,
@@ -627,6 +668,9 @@ export function MindMapNode({
   onRemarkHover,
   onFoldToggle,
   expandDelay,
+  isSearchMatch,
+  isActiveMatch,
+  isFilterDimmed,
   latexRenderer,
 }: MindMapNodeProps) {
   const nx = node.x + (offset?.x ?? 0);
@@ -636,6 +680,9 @@ export function MindMapNode({
   const newClass = isNew ? "mindmap-node-new" : "";
   const placeholderClass = node.placeholder ? "mindmap-node-placeholder" : "";
   const expandClass = expandDelay !== undefined ? "mindmap-node-expanding" : "";
+  const searchClass = isSearchMatch ? " mindmap-node-search-match" : "";
+  const activeMatchClass = isActiveMatch ? " mindmap-node-active-match" : "";
+  const dimmedClass = isFilterDimmed ? " mindmap-node-filter-dimmed" : "";
   const expandStyle =
     expandDelay !== undefined
       ? { animationDelay: `${expandDelay}ms` }
@@ -663,11 +710,15 @@ export function MindMapNode({
       <g
         key={node.id}
         transform={`translate(${nx}, ${ny})`}
-        className={`mindmap-node-g mindmap-node-root ${animClass} ${newClass} ${placeholderClass} ${expandClass}${isGhost ? ' mindmap-node-ghost' : ''}`}
+        className={`mindmap-node-g mindmap-node-root ${animClass} ${newClass} ${placeholderClass} ${expandClass}${isGhost ? ' mindmap-node-ghost' : ''}${searchClass}${activeMatchClass}${dimmedClass}`}
         data-branch-index={node.branchIndex}
+        role="treeitem"
+        aria-label={node.text}
+        tabIndex={-1}
         onMouseDown={(e) => onMouseDown(e, node.id)}
         onClick={(e) => onClick(e, node.id)}
         onDoubleClick={(e) => onDoubleClick(e, node.id, rawEditText)}
+        onContextMenu={(e) => onContextMenu?.(e, node.id)}
         style={expandStyle}
       >
         <rect
@@ -821,11 +872,15 @@ export function MindMapNode({
     <g
       key={node.id}
       transform={`translate(${nx}, ${ny})`}
-      className={`mindmap-node-g mindmap-node-child ${animClass} ${newClass} ${placeholderClass}${isGhost ? ' mindmap-node-ghost' : ''}`}
+      className={`mindmap-node-g mindmap-node-child ${animClass} ${newClass} ${placeholderClass}${isGhost ? ' mindmap-node-ghost' : ''}${searchClass}${activeMatchClass}${dimmedClass}`}
       data-branch-index={node.branchIndex}
+      role="treeitem"
+      aria-label={node.text}
+      tabIndex={-1}
       onMouseDown={(e) => onMouseDown(e, node.id)}
       onClick={(e) => onClick(e, node.id)}
       onDoubleClick={(e) => onDoubleClick(e, node.id, rawEditText)}
+      onContextMenu={(e) => onContextMenu?.(e, node.id)}
     >
       {/* Invisible hit area */}
       <rect

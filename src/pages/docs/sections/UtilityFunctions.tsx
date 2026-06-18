@@ -44,6 +44,12 @@ export default function UtilityFunctions() {
 
   // Lightweight Viewer
   MindMapViewer,                  // read-only viewer (also via @xiangfa/mindmap/viewer)
+
+  // Advanced types
+  type LayoutNode,
+  type Edge,
+  type MindMapAIRequestPayload,
+  type MindMapAIContentPart,
 } from "@xiangfa/mindmap";`}</CodeBlock>
     </>
   );

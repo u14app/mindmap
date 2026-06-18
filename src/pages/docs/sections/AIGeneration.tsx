@@ -31,6 +31,10 @@ function App() {
 }`}</CodeBlock>
 
           <SubHeading>MindMapAIConfig</SubHeading>
+          <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+            Import <code>MindMapAIRequestPayload</code> from the main package
+            when typing a custom <code>request</code> adapter.
+          </p>
           <CodeBlock lang="typescript">{`type AIAttachmentType = "text" | "image" | "pdf";
 
 interface MindMapAIConfig {
@@ -39,7 +43,15 @@ interface MindMapAIConfig {
   model: string;               // Model name (e.g., "gpt-5")
   systemPrompt?: string;       // Custom system prompt (has a built-in default)
   attachments?: AIAttachmentType[];  // Allowed attachment types (default: [])
+  maxAttachmentSize?: number;  // Per-file byte limit (default: 5MB)
+  headers?: Record<string, string>;  // Extra default request headers
+  request?: (payload: MindMapAIRequestPayload) => Promise<Response>; // Proxy adapter
 }`}</CodeBlock>
+
+          <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+            For production, prefer the <code>request</code> adapter to call a
+            server-side proxy so API keys stay off the client.
+          </p>
 
           <div className="docs-table-wrap my-6">
             <table className="docs-table">
@@ -164,7 +176,7 @@ interface MindMapAIConfig {
                   <td>
                     <code>application/pdf</code>
                   </td>
-                  <td>Content extracted and sent as text</td>
+                  <td>Use a custom request adapter for provider-specific PDF handling</td>
                 </tr>
               </tbody>
             </table>

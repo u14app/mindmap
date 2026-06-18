@@ -4,9 +4,14 @@ interface UseCanvasPanParams {
   svgRef: React.RefObject<SVGSVGElement | null>
   pan: { x: number; y: number }
   setPan: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>
+  zoom: number
+  setZoom: React.Dispatch<React.SetStateAction<number>>
 }
 
-export function useCanvasPan({ svgRef, pan, setPan }: UseCanvasPanParams) {
+const MIN_ZOOM = 0.1
+const MAX_ZOOM = 5
+
+export function useCanvasPan({ svgRef, pan, setPan, zoom, setZoom }: UseCanvasPanParams) {
   const [draggingCanvas, setDraggingCanvas] = useState(false)
   const canvasDragStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
   const didDragRef = useRef(false)
@@ -42,41 +47,130 @@ export function useCanvasPan({ svgRef, pan, setPan }: UseCanvasPanParams) {
     setDraggingCanvas(false)
   }, [])
 
-  // Touch support: single-finger pan + two-finger pinch handled by usePanZoom's wheel
+  // --- Touch support: single-finger pan + two-finger pinch-to-zoom ---
+  // Keep latest pan/zoom in refs so the native listeners (registered once) read
+  // current values without re-binding on every render.
   const panRef = useRef(pan)
-  useEffect(() => { panRef.current = pan })
+  const zoomRef = useRef(zoom)
+  useEffect(() => {
+    panRef.current = pan
+    zoomRef.current = zoom
+  })
+
+  // Gesture state lives in a ref to avoid stale closures inside native handlers.
+  const gestureRef = useRef<{
+    type: 'none' | 'pan' | 'pinch'
+    startDist: number
+    startZoom: number
+    startPan: { x: number; y: number }
+    startMid: { x: number; y: number }
+  }>({
+    type: 'none',
+    startDist: 0,
+    startZoom: 1,
+    startPan: { x: 0, y: 0 },
+    startMid: { x: 0, y: 0 },
+  })
 
   useEffect(() => {
     const svg = svgRef.current
     if (!svg) return
 
+    const touchDistance = (t0: Touch, t1: Touch) =>
+      Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY)
+
+    // Midpoint of two touches in svg-local coordinates
+    const touchMidpoint = (t0: Touch, t1: Touch, rect: DOMRect) => ({
+      x: (t0.clientX + t1.clientX) / 2 - rect.left,
+      y: (t0.clientY + t1.clientY) / 2 - rect.top,
+    })
+
     function handleTouchStart(e: TouchEvent) {
-      if (e.touches.length !== 1) return
-      e.preventDefault()
-      const touch = e.touches[0]
-      didDragRef.current = false
-      setDraggingCanvas(true)
-      canvasDragStart.current = {
-        x: touch.clientX,
-        y: touch.clientY,
-        panX: panRef.current.x,
-        panY: panRef.current.y,
+      const touches = e.touches
+      if (touches.length === 2) {
+        // Begin pinch — overrides any in-progress single-finger pan
+        e.preventDefault()
+        const rect = svg!.getBoundingClientRect()
+        gestureRef.current = {
+          type: 'pinch',
+          startDist: touchDistance(touches[0], touches[1]),
+          startZoom: zoomRef.current,
+          startPan: { ...panRef.current },
+          startMid: touchMidpoint(touches[0], touches[1], rect),
+        }
+        setDraggingCanvas(false)
+        return
+      }
+      if (touches.length === 1) {
+        e.preventDefault()
+        const touch = touches[0]
+        didDragRef.current = false
+        setDraggingCanvas(true)
+        canvasDragStart.current = {
+          x: touch.clientX,
+          y: touch.clientY,
+          panX: panRef.current.x,
+          panY: panRef.current.y,
+        }
+        gestureRef.current.type = 'pan'
       }
     }
 
     function handleTouchMove(e: TouchEvent) {
-      if (e.touches.length !== 1) return
-      e.preventDefault()
-      didDragRef.current = true
-      const touch = e.touches[0]
-      setPan({
-        x: canvasDragStart.current.panX + (touch.clientX - canvasDragStart.current.x),
-        y: canvasDragStart.current.panY + (touch.clientY - canvasDragStart.current.y),
-      })
+      const gesture = gestureRef.current
+      const touches = e.touches
+
+      if (gesture.type === 'pinch' && touches.length >= 2) {
+        e.preventDefault()
+        if (gesture.startDist <= 0) return
+        const rect = svg!.getBoundingClientRect()
+        const ratio = touchDistance(touches[0], touches[1]) / gesture.startDist
+        const newZoom = Math.min(
+          Math.max(gesture.startZoom * ratio, MIN_ZOOM),
+          MAX_ZOOM,
+        )
+        // Keep the content point under the initial pinch midpoint anchored to
+        // the moving midpoint — this folds the two-finger drag into the zoom.
+        const newMid = touchMidpoint(touches[0], touches[1], rect)
+        const contentX = (gesture.startMid.x - gesture.startPan.x) / gesture.startZoom
+        const contentY = (gesture.startMid.y - gesture.startPan.y) / gesture.startZoom
+        setZoom(newZoom)
+        setPan({
+          x: newMid.x - contentX * newZoom,
+          y: newMid.y - contentY * newZoom,
+        })
+        return
+      }
+
+      if (gesture.type === 'pan' && touches.length === 1) {
+        e.preventDefault()
+        didDragRef.current = true
+        const touch = touches[0]
+        setPan({
+          x: canvasDragStart.current.panX + (touch.clientX - canvasDragStart.current.x),
+          y: canvasDragStart.current.panY + (touch.clientY - canvasDragStart.current.y),
+        })
+      }
     }
 
     function handleTouchEnd(e: TouchEvent) {
-      if (e.touches.length === 0) {
+      const touches = e.touches
+      if (gestureRef.current.type === 'pinch' && touches.length === 1) {
+        // One finger lifted mid-pinch — resume single-finger pan
+        e.preventDefault()
+        const touch = touches[0]
+        canvasDragStart.current = {
+          x: touch.clientX,
+          y: touch.clientY,
+          panX: panRef.current.x,
+          panY: panRef.current.y,
+        }
+        gestureRef.current.type = 'pan'
+        setDraggingCanvas(true)
+        return
+      }
+      if (touches.length === 0) {
+        gestureRef.current.type = 'none'
         setDraggingCanvas(false)
       }
     }
@@ -92,7 +186,7 @@ export function useCanvasPan({ svgRef, pan, setPan }: UseCanvasPanParams) {
       svg.removeEventListener('touchend', handleTouchEnd)
       svg.removeEventListener('touchcancel', handleTouchEnd)
     }
-  }, [svgRef, setPan])
+  }, [svgRef, setPan, setZoom])
 
   return {
     draggingCanvas,

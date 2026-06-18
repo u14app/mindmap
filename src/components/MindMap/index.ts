@@ -2,7 +2,25 @@ export { MindMap } from './MindMap'
 export { MindMapViewer } from './MindMapViewer'
 export { MindMapTextEditor } from './components/MindMapTextEditor'
 export type { MindMapTextEditorProps } from './components/MindMapTextEditor'
-export type { MindMapData, MindMapProps, MindMapRef, MindMapViewerProps, MindMapViewerRef, MindMapEvent, LayoutDirection, ThemeMode, ToolbarConfig, TaskStatus, CrossLink, MindMapAIConfig, AIAttachmentType } from './types'
+export type {
+  AIAttachmentType,
+  CrossLink,
+  Edge,
+  LayoutDirection,
+  LayoutNode,
+  MindMapAIConfig,
+  MindMapAIContentPart,
+  MindMapAIRequestPayload,
+  MindMapData,
+  MindMapEvent,
+  MindMapProps,
+  MindMapRef,
+  MindMapViewerProps,
+  MindMapViewerRef,
+  TaskStatus,
+  ThemeMode,
+  ToolbarConfig,
+} from './types'
 export type { MindMapMessages } from './utils/i18n'
 export { resolveMessages, detectLocale } from './utils/i18n'
 export { buildExportSVG, buildExportSVGForPNG, exportToPNG } from './utils/export'

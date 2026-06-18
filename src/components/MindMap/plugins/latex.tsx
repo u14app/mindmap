@@ -53,8 +53,10 @@ export function onKatexReady(cb: () => void): void {
   }
 }
 
-// Begin loading immediately when this module is imported
-initKatex();
+// NOTE: KaTeX loading is no longer kicked off at module scope. Keeping this
+// module side-effect-free lets bundlers drop it (and the ~256kB KaTeX chunk)
+// for consumers that never use the latex plugin. The editor calls initKatex()
+// on demand once it detects the latex plugin in its `plugins` prop.
 
 export function loadKatexStyle() {
   if (typeof document === "undefined") return;

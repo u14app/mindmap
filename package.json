@@ -3,14 +3,13 @@
   "description": "A beautiful, interactive mind map component for React.",
   "license": "Apache-2.0",
   "private": false,
-  "version": "0.6.5",
+  "version": "0.7.0",
   "type": "module",
   "main": "dist/mindmap.umd.cjs",
   "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
   "sideEffects": [
-    "*.css",
-    "./dist/esm/plugins/latex.js"
+    "*.css"
   ],
   "exports": {
     ".": {
@@ -39,12 +38,15 @@
     "build": "tsc -b && vite build",
     "build:lib": "rm -rf dist && vite build --mode lib && tsc -p tsconfig.lib.json",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test"
   },
   "peerDependencies": {
+    "katex": ">=0.16",
     "react": ">=18",
-    "react-dom": ">=18",
-    "katex": ">=0.16"
+    "react-dom": ">=18"
   },
   "peerDependenciesMeta": {
     "katex": {
@@ -57,6 +59,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.60.0",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -65,8 +68,10 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "lucide-react": "^1.20.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.0.0"
+    "vite": "^8.0.0",
+    "vitest": "^4.1.8"
   }
 }

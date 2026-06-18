@@ -6,6 +6,8 @@ import {
   useEffect,
   useImperativeHandle,
   forwardRef,
+  lazy,
+  Suspense,
 } from "react";
 import type {
   MindMapData,
@@ -15,37 +17,56 @@ import type {
   LayoutDirection,
   ThemeMode,
 } from "./types";
-import { layoutMultiRoot, computeEdgePath } from "./utils/layout";
+import { computeEdgePath } from "./utils/layout";
 import { buildExportSVG, buildExportSVGForPNG, exportToPNG } from "./utils/export";
-import { parseMarkdownMultiRoot, parseMarkdownWithFrontMatter, toMarkdownMultiRoot } from "./utils/markdown";
+import { toMarkdownMultiRoot } from "./utils/markdown";
+import { parseInitialMindMapInput, parseMindMapMarkdownInput } from "./utils/input";
+import type { ParsedMindMapInput } from "./utils/input";
 import { resolveMessages, detectLocale } from "./utils/i18n";
 import {
   generateId,
   normalizeData,
   addChildMulti,
+  addSiblingMulti,
   removeNodeMulti,
   findSubtreeMulti,
   regenerateIds,
   addChildToSide,
 } from "./utils/tree-ops";
+import type { MindMapHistorySnapshot } from "./utils/history";
+import {
+  cloneHistorySnapshot,
+  pushHistorySnapshot,
+} from "./utils/history";
 import { useTheme } from "./hooks/useTheme";
 import { generateCSSVariables } from "./utils/theme";
-import { usePanZoom } from "./hooks/usePanZoom";
+import { useMindMapView } from "./hooks/useMindMapView";
 import { useDrag } from "./hooks/useDrag";
 import { useNodeEdit } from "./hooks/useNodeEdit";
-import { useNewNodeAnimation } from "./hooks/useNewNodeAnimation";
 import { MindMapNode } from "./components/MindMapNode";
+import type { LatexRenderer } from "./components/MindMapNode";
+import { MindMapCanvas } from "./components/MindMapCanvas";
 import { MindMapControls } from "./components/MindMapControls";
-import { MindMapContextMenu } from "./components/MindMapContextMenu";
-import { runRenderOverlay } from "./plugins/runner";
-import {
-  getKatexSync,
-  onKatexReady,
-  renderLatexToHtml,
-  loadKatexStyle,
-} from "./plugins/latex";
-import { MindMapAIInput } from "./components/MindMapAIInput";
+import type { MindMapImportOptions } from "./utils/import";
 import "./MindMap.css";
+
+// Edit-mode-only UI is code-split: each chunk loads on first use so consumers
+// that never open the context menu / import dialog / AI input don't pay for it.
+const MindMapContextMenu = lazy(() =>
+  import("./components/MindMapContextMenu").then((m) => ({
+    default: m.MindMapContextMenu,
+  })),
+);
+const MindMapImportDialog = lazy(() =>
+  import("./components/MindMapImportDialog").then((m) => ({
+    default: m.MindMapImportDialog,
+  })),
+);
+const MindMapAIInput = lazy(() =>
+  import("./components/MindMapAIInput").then((m) => ({
+    default: m.MindMapAIInput,
+  })),
+);
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -69,6 +90,12 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     readonly: readonlyProp = false,
     toolbar = true,
     ai,
+    selectedNodeId: selectedNodeIdProp,
+    onSelectedNodeChange,
+    searchQuery: searchQueryProp,
+    activeTags: activeTagsProp,
+    onSearchChange,
+    onActiveTagsChange,
     onDataChange,
     onEvent,
     plugins: pluginsProp,
@@ -81,22 +108,9 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   const plugins = pluginsProp && pluginsProp.length > 0 ? pluginsProp : undefined;
 
   // --- Eagerly parse markdown on init to avoid first-frame flash ---
-  const initParsed = useMemo(() => {
-    if (data) return null; // data prop takes priority
-    if (markdown === undefined) return null;
-    if (plugins) {
-      const result = parseMarkdownWithFrontMatter(markdown, plugins);
-      const dir = result.frontMatter.direction as LayoutDirection | undefined;
-      const thm = result.frontMatter.theme as ThemeMode | undefined;
-      return {
-        roots: result.roots,
-        direction: (dir === 'left' || dir === 'right' || dir === 'both') ? dir : undefined,
-        theme: (thm === 'light' || thm === 'dark' || thm === 'auto') ? thm : undefined,
-      };
-    }
-    return { roots: parseMarkdownMultiRoot(markdown), direction: undefined, theme: undefined };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only on mount
+  const [initParsed] = useState(() =>
+    parseInitialMindMapInput(data, markdown, plugins),
+  );
 
   // --- Data state ---
   const [mapData, setMapData] = useState<MindMapData[]>(() => {
@@ -106,67 +120,184 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   });
   const [direction, setDirection] = useState<LayoutDirection>(() => initParsed?.direction ?? defaultDirection);
   const [splitIndices, setSplitIndices] = useState<Record<string, number>>({});
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [internalSelectedNodeId, setInternalSelectedNodeId] = useState<string | null>(null);
+  const selectedNodeId = selectedNodeIdProp !== undefined ? selectedNodeIdProp : internalSelectedNodeId;
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
+    nodeId?: string | null;
+    canPaste?: boolean;
   } | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [colorMap, setColorMap] = useState<Record<string, string>>({});
   const clipboardRef = useRef<MindMapData | null>(null);
   const [mode, setMode] = useState<'view' | 'text'>('view');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [textContent, setTextContent] = useState('');
-  const [remarkTooltip, setRemarkTooltip] = useState<{ nodeId: string; text: string; x: number; y: number } | null>(null);
   const [foldOverrides, setFoldOverrides] = useState<Record<string, boolean>>({});
-  const [expandingFromId, setExpandingFromId] = useState<string | null>(null);
   const [fmTheme, setFmTheme] = useState<ThemeMode | undefined>(() => initParsed?.theme);
+  const [internalSearchQuery, setInternalSearchQuery] = useState('');
+  const [internalActiveTags, setInternalActiveTags] = useState<string[]>([]);
+  const searchQuery = searchQueryProp !== undefined ? searchQueryProp : internalSearchQuery;
+  const activeTags = activeTagsProp !== undefined ? activeTagsProp : internalActiveTags;
+  const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
+  const historyPastRef = useRef<MindMapHistorySnapshot[]>([]);
+  const historyFutureRef = useRef<MindMapHistorySnapshot[]>([]);
+  const [historyAvailability, setHistoryAvailability] = useState({
+    canUndo: false,
+    canRedo: false,
+  });
+
+  // --- Event emission ---
+  const emit = useCallback((event: MindMapEvent) => {
+    onEvent?.(event);
+  }, [onEvent]);
+
+  const mapDataRef = useRef(mapData);
+  const directionRef = useRef(direction);
+  const splitIndicesRef = useRef(splitIndices);
+  const foldOverridesRef = useRef(foldOverrides);
+  const selectedNodeIdRef = useRef(selectedNodeId);
+  useEffect(() => {
+    mapDataRef.current = mapData;
+    directionRef.current = direction;
+    splitIndicesRef.current = splitIndices;
+    foldOverridesRef.current = foldOverrides;
+    selectedNodeIdRef.current = selectedNodeId;
+  }, [mapData, direction, splitIndices, foldOverrides, selectedNodeId]);
+
+  const canUndo = historyAvailability.canUndo;
+  const canRedo = historyAvailability.canRedo;
+
+  const emitHistoryChange = useCallback(() => {
+    const next = {
+      canUndo: historyPastRef.current.length > 0,
+      canRedo: historyFutureRef.current.length > 0,
+    };
+    setHistoryAvailability(next);
+    emit({ type: 'historyChange', ...next });
+  }, [emit]);
+
+  const makeHistorySnapshot = useCallback((): MindMapHistorySnapshot => ({
+    mapData: mapDataRef.current,
+    direction: directionRef.current,
+    splitIndices: splitIndicesRef.current,
+    foldOverrides: foldOverridesRef.current,
+    selectedNodeId: selectedNodeIdRef.current,
+  }), []);
+
+  const applyParsedViewOptions = useCallback((
+    parsed: Pick<ParsedMindMapInput, 'direction' | 'theme'>,
+    resetSplits = false,
+  ) => {
+    if (parsed.direction) {
+      setDirection(parsed.direction);
+      directionRef.current = parsed.direction;
+      if (resetSplits) {
+        setSplitIndices({});
+        splitIndicesRef.current = {};
+      }
+    }
+    if (parsed.theme) {
+      setFmTheme(parsed.theme);
+    }
+  }, []);
+
+  const pushCurrentHistory = useCallback(() => {
+    historyPastRef.current = pushHistorySnapshot(
+      historyPastRef.current,
+      makeHistorySnapshot(),
+    );
+    historyFutureRef.current = [];
+    emitHistoryChange();
+  }, [emitHistoryChange, makeHistorySnapshot]);
+
+  const setSelectedNodeIdControlled = useCallback((nodeId: string | null) => {
+    if (selectedNodeIdProp === undefined) {
+      setInternalSelectedNodeId(nodeId);
+    }
+    selectedNodeIdRef.current = nodeId;
+    onSelectedNodeChange?.(nodeId);
+  }, [onSelectedNodeChange, selectedNodeIdProp]);
+
+  const setSearchQueryControlled = useCallback((query: string) => {
+    if (searchQueryProp === undefined) {
+      setInternalSearchQuery(query);
+    }
+    onSearchChange?.(query);
+  }, [onSearchChange, searchQueryProp]);
+
+  const setActiveTagsControlled = useCallback((tags: string[]) => {
+    if (activeTagsProp === undefined) {
+      setInternalActiveTags(tags);
+    }
+    onActiveTagsChange?.(tags);
+  }, [activeTagsProp, onActiveTagsChange]);
+
+  const replaceMapData = useCallback((
+    nextData: MindMapData[],
+    viewOptions?: Pick<ParsedMindMapInput, 'direction' | 'theme'>,
+  ) => {
+    setMapData(nextData);
+    mapDataRef.current = nextData;
+    setSplitIndices({});
+    splitIndicesRef.current = {};
+    setFoldOverrides({});
+    foldOverridesRef.current = {};
+    setSelectedNodeIdControlled(null);
+    if (viewOptions) {
+      applyParsedViewOptions(viewOptions);
+    }
+    onDataChange?.(nextData);
+  }, [applyParsedViewOptions, onDataChange, setSelectedNodeIdControlled]);
 
   // Sync external data / markdown
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- controlled data prop must replace the editable internal tree
     if (data) setMapData(normalizeData(data));
   }, [data]);
 
   useEffect(() => {
     if (markdown !== undefined) {
-      if (plugins) {
-        const { roots, frontMatter } = parseMarkdownWithFrontMatter(markdown, plugins);
-        setMapData(roots);
-        // Apply frontmatter direction/theme if not explicitly set via props
-        if (frontMatter.direction) {
-          const dir = frontMatter.direction as LayoutDirection;
-          if (dir === 'left' || dir === 'right' || dir === 'both') {
-            setDirection(dir);
-          }
-        }
-        if (frontMatter.theme) {
-          const t = frontMatter.theme as ThemeMode;
-          if (t === 'light' || t === 'dark' || t === 'auto') {
-            setFmTheme(t);
-          }
-        }
-      } else {
-        setMapData(parseMarkdownMultiRoot(markdown));
-      }
+      const parsed = parseMindMapMarkdownInput(markdown, plugins);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- controlled markdown prop must replace the editable internal tree
+      setMapData(parsed.roots);
+      applyParsedViewOptions(parsed, true);
     }
-  }, [markdown, plugins]);
+  }, [applyParsedViewOptions, markdown, plugins]);
 
   const updateData = useCallback(
-    (updater: (prev: MindMapData[]) => MindMapData[]) => {
+    (updater: (prev: MindMapData[]) => MindMapData[], recordHistory = true) => {
+      if (recordHistory) pushCurrentHistory();
       setMapData((prev) => {
         const next = updater(prev);
+        mapDataRef.current = next;
         onDataChange?.(next);
         return next;
       });
     },
-    [onDataChange],
+    [onDataChange, pushCurrentHistory],
   );
 
-  // --- Event emission ---
-  const emitRef = useRef(onEvent);
-  emitRef.current = onEvent;
-  const emit = useCallback((event: MindMapEvent) => {
-    emitRef.current?.(event);
-  }, []);
+  // --- LaTeX renderer (loaded on demand only when the latex plugin is used) ---
+  const [latexRenderer, setLatexRenderer] = useState<LatexRenderer | undefined>(undefined);
+  useEffect(() => {
+    if (!plugins?.some((p) => p.name === "latex")) return;
+    let cancelled = false;
+    import("./plugins/latex").then((m) => {
+      if (cancelled) return;
+      m.initKatex(); // begin loading KaTeX now that the plugin is in use
+      setLatexRenderer({
+        getKatexSync: m.getKatexSync,
+        onKatexReady: m.onKatexReady,
+        renderLatexToHtml: m.renderLatexToHtml,
+        loadKatexStyle: m.loadKatexStyle,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [plugins]);
 
   // --- Theme ---
   const activeTheme = useTheme(fmTheme ?? themeProp);
@@ -176,69 +307,47 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
   // --- Toolbar visibility ---
   const toolbarConfig = useMemo(() => {
-    if (toolbar === false) return { zoom: false };
-    if (toolbar === true || toolbar === undefined) return { zoom: true };
+    if (toolbar === false) return { zoom: false, history: false, search: false, tags: false };
+    if (toolbar === true || toolbar === undefined) {
+      return { zoom: true, history: true, search: true, tags: true };
+    }
     return {
       zoom: toolbar.zoom ?? true,
+      history: toolbar.history ?? true,
+      search: toolbar.search ?? true,
+      tags: toolbar.tags ?? true,
     };
   }, [toolbar]);
 
-  // --- Layout ---
-  const { nodes, edges } = useMemo(
-    () => layoutMultiRoot(mapData, direction, colorMap, splitIndices, plugins, readonlyProp, foldOverrides),
-    [mapData, direction, colorMap, splitIndices, plugins, readonlyProp, foldOverrides],
-  );
-
-  // Persist colors for level-1 nodes (so they survive swaps)
-  useEffect(() => {
-    const updates: Record<string, string> = {};
-    let hasNew = false;
-    for (const node of nodes) {
-      if (node.depth === 1 && !colorMap[node.id]) {
-        updates[node.id] = node.color;
-        hasNew = true;
-      }
-    }
-    if (hasNew) {
-      setColorMap((prev) => ({ ...prev, ...updates }));
-    }
-  }, [nodes, colorMap]);
-
-  const nodeMap = useMemo(() => {
-    const map: Record<string, (typeof nodes)[0]> = {};
-    for (const n of nodes) map[n.id] = n;
-    return map;
-  }, [nodes]);
-
-  // --- Expand animation delays (BFS from expanded node) ---
-  const expandDelays = useMemo(() => {
-    if (!expandingFromId) return {};
-    const delays: Record<string, number> = {};
-    const queue: { id: string; depth: number }[] = [];
-    // Find direct children of the expanding node
-    for (const n of nodes) {
-      if (n.parentId === expandingFromId) {
-        queue.push({ id: n.id, depth: 1 });
-      }
-    }
-    while (queue.length > 0) {
-      const { id, depth } = queue.shift()!;
-      delays[id] = depth * 100; // 100ms stagger per depth level
-      for (const n of nodes) {
-        if (n.parentId === id) {
-          queue.push({ id: n.id, depth: depth + 1 });
-        }
-      }
-    }
-    return delays;
-  }, [expandingFromId, nodes]);
-
-  // --- Pan / Zoom ---
+  // --- Shared view layer (layout, pan/zoom, search, expand animation, remark) ---
   const {
+    nodes, edges, nodeMap, searchState, expandDelays,
     pan, setPan, zoom, setZoom,
     animateTo, autoFit, zoomIn, zoomOut,
     contentCenter, panToNode,
-  } = usePanZoom(svgRef, nodes);
+    newNodeIds, remarkTooltip, handleRemarkHover,
+    handleAutoFit, triggerExpandAnimation,
+  } = useMindMapView({
+    svgRef, mapData, direction, colorMap, setColorMap, foldOverrides,
+    splitIndices, plugins, readonly: readonlyProp, searchQuery, activeTags,
+    onZoomChange: (z) => emit({ type: 'zoomChange', zoom: z }),
+  });
+
+  const activeSearchIndexForMatches = useMemo(() => {
+    const total = searchState.matchIds.length;
+    if (total === 0) return -1;
+    return activeSearchIndex < 0 || activeSearchIndex >= total
+      ? 0
+      : activeSearchIndex;
+  }, [activeSearchIndex, searchState.matchIds.length]);
+
+  useEffect(() => {
+    emit({
+      type: 'searchChange',
+      query: searchQuery,
+      matchCount: searchState.matchIds.length,
+    });
+  }, [emit, searchQuery, searchState.matchIds.length]);
 
   // --- Drag ---
   const {
@@ -260,13 +369,10 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
   const {
     editingId, editText, setEditText,
     pendingEditId, setPendingEditId,
-    handleNodeDoubleClick, commitEdit, cancelEdit,
+    handleNodeDoubleClick, beginEdit, commitEdit, cancelEdit,
   } = useNodeEdit({ nodeMap, updateData, onTextChange: (nodeId, oldText, newText) => {
     emit({ type: 'nodeTextChange', nodeId, oldText, newText });
   } });
-
-  // --- New Node Animation ---
-  const newNodeIds = useNewNodeAnimation(nodes);
 
   // --- Initial entrance state ---
   const [initialReady, setInitialReady] = useState(false);
@@ -316,19 +422,19 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     (e: React.MouseEvent, nodeId: string) => {
       e.stopPropagation();
       if (!didDragRef.current) {
-        setSelectedNodeId(nodeId);
+        setSelectedNodeIdControlled(nodeId);
         emit({ type: 'nodeSelect', nodeId });
       }
     },
-    [didDragRef, emit],
+    [didDragRef, emit, setSelectedNodeIdControlled],
   );
 
   const handleCanvasClick = useCallback(() => {
     if (!didDragRef.current) {
-      setSelectedNodeId(null);
+      setSelectedNodeIdControlled(null);
       emit({ type: 'nodeSelect', nodeId: null });
     }
-  }, [didDragRef, emit]);
+  }, [didDragRef, emit, setSelectedNodeIdControlled]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -346,30 +452,126 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     setContextMenu(null);
   }, []);
 
-  // Remark tooltip handler
-  const handleRemarkHover = useCallback((nodeId: string | null) => {
-    if (!nodeId) {
-      setRemarkTooltip(null);
+  const handleNodeContextMenu = useCallback(
+    (e: React.MouseEvent, nodeId: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      setSelectedNodeIdControlled(nodeId);
+      setContextMenu({
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+        nodeId,
+        canPaste: !!clipboardRef.current,
+      });
+    },
+    [setSelectedNodeIdControlled],
+  );
+
+  // --- Reusable node operations (shared by keyboard shortcuts + context menu) ---
+  const handleCopyNode = useCallback((nodeId: string) => {
+    clipboardRef.current = findSubtreeMulti(mapData, nodeId);
+  }, [mapData]);
+
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    if (readonlyProp) return;
+    const isRoot = mapData.some((root) => root.id === nodeId);
+    if (isRoot && mapData.length <= 1) return;
+    emit({ type: 'nodeDelete', nodeId });
+    updateData((prev) => removeNodeMulti(prev, nodeId));
+    setSelectedNodeIdControlled(null);
+  }, [mapData, readonlyProp, emit, updateData, setSelectedNodeIdControlled]);
+
+  const handleCutNode = useCallback((nodeId: string) => {
+    if (readonlyProp) return;
+    clipboardRef.current = findSubtreeMulti(mapData, nodeId);
+    handleDeleteNode(nodeId);
+  }, [mapData, readonlyProp, handleDeleteNode]);
+
+  const handlePasteNode = useCallback((nodeId: string) => {
+    if (readonlyProp || !clipboardRef.current) return;
+    const pastedSubtree = regenerateIds(clipboardRef.current);
+    updateData((prev) => addChildMulti(prev, nodeId, pastedSubtree));
+    emit({ type: 'nodeAdd', node: pastedSubtree, parentId: nodeId });
+  }, [readonlyProp, updateData, emit]);
+
+  const handleEditNode = useCallback((nodeId: string) => {
+    if (readonlyProp) return;
+    beginEdit(nodeId);
+  }, [readonlyProp, beginEdit]);
+
+  // Create a child under the given node (keyboard Tab + Enter-on-new flows).
+  const handleCreateChild = useCallback((parentId: string) => {
+    if (readonlyProp) return;
+    const newId = generateId();
+    const newChild: MindMapData = { id: newId, text: t.newNode };
+    const isRoot = mapData.some((root) => root.id === parentId);
+    if (isRoot && direction === "both") {
+      updateData((prev) =>
+        prev.map((root) => {
+          if (root.id !== parentId) return root;
+          const children = root.children || [];
+          const si = splitIndices[parentId] ?? Math.ceil(children.length / 2);
+          const result = addChildToSide(root, newChild, "right", si);
+          setSplitIndices((prevSplit) => ({ ...prevSplit, [parentId]: result.newSplitIndex }));
+          return result.data;
+        }),
+      );
+    } else {
+      updateData((prev) => addChildMulti(prev, parentId, newChild));
+    }
+    setPendingEditId(newId);
+    setEditText("");
+    emit({ type: 'nodeAdd', node: newChild, parentId });
+  }, [readonlyProp, mapData, direction, splitIndices, updateData, setPendingEditId, setEditText, t, emit]);
+
+  // Create a sibling after the given node (keyboard Shift+Enter).
+  const handleCreateSibling = useCallback((targetId: string) => {
+    if (readonlyProp) return;
+    const newId = generateId();
+    const newNode: MindMapData = { id: newId, text: t.newNode };
+    updateData((prev) => addSiblingMulti(prev, targetId, newNode));
+    setPendingEditId(newId);
+    setEditText("");
+    emit({ type: 'nodeAdd', node: newNode, parentId: nodeMap[targetId]?.parentId ?? null });
+  }, [readonlyProp, updateData, setPendingEditId, setEditText, t, emit, nodeMap]);
+
+  // Move selection to the spatially-nearest node in a direction (arrow keys).
+  const selectInDirection = useCallback((dir: 'up' | 'down' | 'left' | 'right') => {
+    const currentId = selectedNodeIdRef.current;
+    if (!currentId) {
+      if (nodes.length > 0) {
+        setSelectedNodeIdControlled(nodes[0].id);
+        emit({ type: 'nodeSelect', nodeId: nodes[0].id });
+      }
       return;
     }
-    const node = nodeMap[nodeId];
-    if (!node || !node.remark) {
-      setRemarkTooltip(null);
-      return;
+    const current = nodeMap[currentId];
+    if (!current) return;
+    let best: (typeof nodes)[number] | null = null;
+    let bestScore = Infinity;
+    for (const n of nodes) {
+      if (n.id === currentId) continue;
+      const dx = n.x - current.x;
+      const dy = n.y - current.y;
+      let primary: number;
+      let secondary: number;
+      if (dir === 'right') { if (dx <= 0) continue; primary = dx; secondary = Math.abs(dy); }
+      else if (dir === 'left') { if (dx >= 0) continue; primary = -dx; secondary = Math.abs(dy); }
+      else if (dir === 'down') { if (dy <= 0) continue; primary = dy; secondary = Math.abs(dx); }
+      else { if (dy >= 0) continue; primary = -dy; secondary = Math.abs(dx); }
+      // Keep movement within a ~45° cone of the requested axis.
+      if (secondary > primary) continue;
+      const score = primary + secondary * 2;
+      if (score < bestScore) { bestScore = score; best = n; }
     }
-    // Position tooltip near the node (in screen coordinates)
-    const svgEl = svgRef.current;
-    if (!svgEl) return;
-    const rect = svgEl.getBoundingClientRect();
-    const screenX = (node.x + node.width / 2) * zoom + pan.x;
-    const screenY = (node.y - node.height / 2) * zoom + pan.y;
-    setRemarkTooltip({
-      nodeId,
-      text: node.remark,
-      x: Math.min(screenX, rect.width - 300),
-      y: screenY - 8,
-    });
-  }, [nodeMap, zoom, pan]);
+    if (best) {
+      setSelectedNodeIdControlled(best.id);
+      emit({ type: 'nodeSelect', nodeId: best.id });
+    }
+  }, [nodes, nodeMap, setSelectedNodeIdControlled, emit]);
 
   // Add child (with optional side for root nodes)
   const handleAddChild = useCallback(
@@ -428,6 +630,79 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     closeContextMenu();
   }, [updateData, closeContextMenu, setPendingEditId, setEditText, t, readonlyProp, emit]);
 
+  const handleOpenImport = useCallback(() => {
+    if (readonlyProp) return;
+    closeContextMenu();
+    setImportDialogOpen(true);
+  }, [closeContextMenu, readonlyProp]);
+
+  const applyHistorySnapshot = useCallback((snapshot: MindMapHistorySnapshot) => {
+    const cloned = cloneHistorySnapshot(snapshot);
+    setMapData(cloned.mapData);
+    mapDataRef.current = cloned.mapData;
+    setDirection(cloned.direction);
+    directionRef.current = cloned.direction;
+    setSplitIndices(cloned.splitIndices);
+    splitIndicesRef.current = cloned.splitIndices;
+    setFoldOverrides(cloned.foldOverrides);
+    foldOverridesRef.current = cloned.foldOverrides;
+    setSelectedNodeIdControlled(cloned.selectedNodeId);
+    onDataChange?.(cloned.mapData);
+  }, [onDataChange, setSelectedNodeIdControlled]);
+
+  const handleImportData = useCallback((
+    nextData: MindMapData[],
+    source: 'markdown' | 'json',
+    options?: MindMapImportOptions,
+  ) => {
+    pushCurrentHistory();
+    replaceMapData(nextData, options);
+    emit({ type: 'import', source, data: nextData });
+    setImportDialogOpen(false);
+    setTimeout(() => {
+      const fit = autoFit();
+      if (fit) animateTo(fit.zoom, fit.panX, fit.panY);
+    }, 50);
+  }, [
+    animateTo,
+    autoFit,
+    emit,
+    pushCurrentHistory,
+    replaceMapData,
+  ]);
+
+  const handleUndo = useCallback(() => {
+    const previous = historyPastRef.current.pop();
+    if (!previous) return;
+    historyFutureRef.current = pushHistorySnapshot(
+      historyFutureRef.current,
+      makeHistorySnapshot(),
+    );
+    applyHistorySnapshot(previous);
+    emit({
+      type: 'undo',
+      canUndo: historyPastRef.current.length > 0,
+      canRedo: historyFutureRef.current.length > 0,
+    });
+    emitHistoryChange();
+  }, [applyHistorySnapshot, emit, emitHistoryChange, makeHistorySnapshot]);
+
+  const handleRedo = useCallback(() => {
+    const next = historyFutureRef.current.pop();
+    if (!next) return;
+    historyPastRef.current = pushHistorySnapshot(
+      historyPastRef.current,
+      makeHistorySnapshot(),
+    );
+    applyHistorySnapshot(next);
+    emit({
+      type: 'redo',
+      canUndo: historyPastRef.current.length > 0,
+      canRedo: historyFutureRef.current.length > 0,
+    });
+    emitHistoryChange();
+  }, [applyHistorySnapshot, emit, emitHistoryChange, makeHistorySnapshot]);
+
   const handleExportSVG = useCallback(() => {
     const svg = buildExportSVG(
       nodes, edges, {}, activeTheme, plugins,
@@ -453,20 +728,87 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     closeContextMenu();
   }, [mapData, closeContextMenu, plugins]);
 
-  // Reset view
-  const handleAutoFit = useCallback(() => {
-    const fit = autoFit();
-    if (fit) {
-      animateTo(fit.zoom, fit.panX, fit.panY);
-    }
-  }, [autoFit, animateTo]);
-
   // Direction change
   const handleDirectionChange = useCallback((dir: LayoutDirection) => {
+    pushCurrentHistory();
     setDirection(dir);
+    directionRef.current = dir;
     setSplitIndices({});
+    splitIndicesRef.current = {};
     emit({ type: 'directionChange', direction: dir });
-  }, [emit]);
+  }, [emit, pushCurrentHistory]);
+
+  const handleFocusNode = useCallback((nodeId: string) => {
+    if (!nodeMap[nodeId]) return;
+    setSelectedNodeIdControlled(nodeId);
+    panToNode(nodeId);
+    emit({ type: 'nodeFocus', nodeId });
+  }, [emit, nodeMap, panToNode, setSelectedNodeIdControlled]);
+
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQueryControlled(query);
+    setActiveSearchIndex(query.trim() ? 0 : -1);
+  }, [setSearchQueryControlled]);
+
+  const handleSearchStep = useCallback((delta: number) => {
+    const total = searchState.matchIds.length;
+    if (total === 0) return;
+    const baseIndex = activeSearchIndexForMatches < 0 ? 0 : activeSearchIndexForMatches;
+    const nextIndex = (baseIndex + delta + total) % total;
+    setActiveSearchIndex(nextIndex);
+    const nodeId = searchState.matchIds[nextIndex];
+    if (nodeId) handleFocusNode(nodeId);
+  }, [activeSearchIndexForMatches, handleFocusNode, searchState.matchIds]);
+
+  const handleTagToggle = useCallback((tag: string) => {
+    const next = activeTags.includes(tag)
+      ? activeTags.filter((t) => t !== tag)
+      : [...activeTags, tag];
+    setActiveTagsControlled(next);
+    emit({ type: 'tagFilterChange', tags: next });
+  }, [activeTags, emit, setActiveTagsControlled]);
+
+  const handleClearTags = useCallback(() => {
+    setActiveTagsControlled([]);
+    emit({ type: 'tagFilterChange', tags: [] });
+  }, [emit, setActiveTagsControlled]);
+
+  const handleFoldToggle = useCallback((nodeId: string) => {
+    pushCurrentHistory();
+    const isExpanding = !foldOverridesRef.current[nodeId];
+    if (isExpanding) {
+      triggerExpandAnimation(nodeId);
+      emit({ type: 'nodeExpand', nodeId });
+    } else {
+      emit({ type: 'nodeCollapse', nodeId });
+    }
+    setFoldOverrides((prev) => {
+      const next = { ...prev, [nodeId]: !prev[nodeId] };
+      foldOverridesRef.current = next;
+      return next;
+    });
+  }, [emit, pushCurrentHistory, triggerExpandAnimation]);
+
+  const handleExpandNode = useCallback((nodeId: string) => {
+    pushCurrentHistory();
+    setFoldOverrides((prev) => {
+      const next = { ...prev, [nodeId]: true };
+      foldOverridesRef.current = next;
+      return next;
+    });
+    triggerExpandAnimation(nodeId);
+    emit({ type: 'nodeExpand', nodeId });
+  }, [emit, pushCurrentHistory, triggerExpandAnimation]);
+
+  const handleCollapseNode = useCallback((nodeId: string) => {
+    pushCurrentHistory();
+    setFoldOverrides((prev) => {
+      const next = { ...prev, [nodeId]: false };
+      foldOverridesRef.current = next;
+      return next;
+    });
+    emit({ type: 'nodeCollapse', nodeId });
+  }, [emit, pushCurrentHistory]);
 
   // Mode toggle
   const handleModeToggle = useCallback(() => {
@@ -479,16 +821,16 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         return 'text';
       } else {
         // Exiting text mode: parse text back to data
-        const parsed = plugins
-          ? parseMarkdownWithFrontMatter(textContent, plugins).roots
-          : parseMarkdownMultiRoot(textContent);
-        updateData(() => parsed);
+        const parsed = parseMindMapMarkdownInput(textContent, plugins);
+        updateData(() => parsed.roots);
         setSplitIndices({});
+        splitIndicesRef.current = {};
+        applyParsedViewOptions(parsed);
         emit({ type: 'modeChange', mode: 'view' });
         return 'view';
       }
     });
-  }, [textEditor, mapData, textContent, updateData, plugins, emit]);
+  }, [textEditor, mapData, textContent, updateData, plugins, applyParsedViewOptions, emit]);
 
   // Fullscreen toggle
   const handleFullscreenToggle = useCallback(() => {
@@ -512,15 +854,6 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     return () => document.removeEventListener('fullscreenchange', handler);
   }, [emit]);
 
-  // Emit zoom changes (skip initial render)
-  const prevZoomRef = useRef(zoom);
-  useEffect(() => {
-    if (zoom !== prevZoomRef.current) {
-      prevZoomRef.current = zoom;
-      emit({ type: 'zoomChange', zoom });
-    }
-  }, [zoom, emit]);
-
   // Keyboard handler
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -532,6 +865,13 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
       if (editingId) return;
       const isMeta = e.metaKey || e.ctrlKey;
+
+      if (isMeta && e.key.toLowerCase() === 'z' && !readonlyProp) {
+        e.preventDefault();
+        if (e.shiftKey) handleRedo();
+        else handleUndo();
+        return;
+      }
 
       // Shift shortcuts for zoom and layout
       if (e.shiftKey && !isMeta) {
@@ -567,83 +907,83 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         }
       }
 
-      // Enter — create child node
-      if (e.key === "Enter" && !isMeta && selectedNodeId && !readonlyProp) {
+      // Arrow keys — move selection to the nearest node in that direction
+      if (
+        !e.shiftKey &&
+        (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "ArrowLeft" || e.key === "ArrowRight")
+      ) {
         e.preventDefault();
-        const newId = generateId();
-        const newChild: MindMapData = { id: newId, text: t.newNode };
+        selectInDirection(
+          e.key === "ArrowUp" ? "up"
+            : e.key === "ArrowDown" ? "down"
+              : e.key === "ArrowLeft" ? "left"
+                : "right",
+        );
+        return;
+      }
 
-        const isRoot = mapData.some((root) => root.id === selectedNodeId);
-        if (isRoot && direction === "both") {
-          updateData((prev) => {
-            return prev.map((root) => {
-              if (root.id !== selectedNodeId) return root;
-              const children = root.children || [];
-              const si =
-                splitIndices[selectedNodeId] ??
-                Math.ceil(children.length / 2);
-              const result = addChildToSide(root, newChild, "right", si);
-              setSplitIndices((prev) => ({
-                ...prev,
-                [selectedNodeId]: result.newSplitIndex,
-              }));
-              return result.data;
-            });
-          });
-        } else {
-          updateData((prev) => addChildMulti(prev, selectedNodeId, newChild));
-        }
+      // F2 — edit selected node
+      if (e.key === "F2" && selectedNodeId && !readonlyProp) {
+        e.preventDefault();
+        handleEditNode(selectedNodeId);
+        return;
+      }
 
-        setPendingEditId(newId);
-        setEditText("");
-        emit({ type: 'nodeAdd', node: newChild, parentId: selectedNodeId });
+      // Tab — create child node under the selected node
+      if (e.key === "Tab" && selectedNodeId && !readonlyProp) {
+        e.preventDefault();
+        handleCreateChild(selectedNodeId);
+        return;
+      }
+
+      // Shift + Enter — create a sibling after the selected node
+      if (e.key === "Enter" && e.shiftKey && !isMeta && selectedNodeId && !readonlyProp) {
+        e.preventDefault();
+        handleCreateSibling(selectedNodeId);
+        return;
+      }
+
+      // Enter — edit the selected node
+      if (e.key === "Enter" && !e.shiftKey && !isMeta && selectedNodeId && !readonlyProp) {
+        e.preventDefault();
+        handleEditNode(selectedNodeId);
         return;
       }
 
       // Delete
       if ((e.key === "Delete" || e.key === "Backspace") && selectedNodeId && !readonlyProp) {
         e.preventDefault();
-        const isRoot = mapData.some((root) => root.id === selectedNodeId);
-        if (isRoot && mapData.length <= 1) return;
-        emit({ type: 'nodeDelete', nodeId: selectedNodeId });
-        updateData((prev) => removeNodeMulti(prev, selectedNodeId));
-        setSelectedNodeId(null);
+        handleDeleteNode(selectedNodeId);
         return;
       }
 
       // Copy
       if (isMeta && e.key === "c" && selectedNodeId) {
         e.preventDefault();
-        clipboardRef.current = findSubtreeMulti(mapData, selectedNodeId);
+        handleCopyNode(selectedNodeId);
         return;
       }
 
       // Cut
       if (isMeta && e.key === "x" && selectedNodeId && !readonlyProp) {
         e.preventDefault();
-        clipboardRef.current = findSubtreeMulti(mapData, selectedNodeId);
-        const isRoot = mapData.some((root) => root.id === selectedNodeId);
-        if (isRoot && mapData.length <= 1) return;
-        emit({ type: 'nodeDelete', nodeId: selectedNodeId });
-        updateData((prev) => removeNodeMulti(prev, selectedNodeId));
-        setSelectedNodeId(null);
+        handleCutNode(selectedNodeId);
         return;
       }
 
       // Paste
       if (isMeta && e.key === "v" && selectedNodeId && clipboardRef.current && !readonlyProp) {
         e.preventDefault();
-        const pastedSubtree = regenerateIds(clipboardRef.current);
-        updateData((prev) => addChildMulti(prev, selectedNodeId, pastedSubtree));
-        emit({ type: 'nodeAdd', node: pastedSubtree, parentId: selectedNodeId });
+        handlePasteNode(selectedNodeId);
         return;
       }
     },
     [
-      editingId, selectedNodeId, mapData, direction, splitIndices,
-      updateData, contextMenu, closeContextMenu,
-      setPendingEditId, setEditText, t,
-      zoomIn, zoomOut, handleAutoFit, handleDirectionChange, readonlyProp, emit,
+      editingId, selectedNodeId, contextMenu, closeContextMenu, readonlyProp,
+      zoomIn, zoomOut, handleAutoFit, handleDirectionChange,
+      handleUndo, handleRedo,
+      selectInDirection, handleEditNode, handleCreateChild, handleCreateSibling,
+      handleDeleteNode, handleCopyNode, handleCutNode, handlePasteNode,
     ],
   );
 
@@ -665,20 +1005,53 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
       exportToOutline() {
         return toMarkdownMultiRoot(mapData, plugins);
       },
+      getMarkdown() {
+        return toMarkdownMultiRoot(mapData, plugins);
+      },
       getData() {
         return mapData;
       },
       setData(d: MindMapData | MindMapData[]) {
-        setMapData(normalizeData(d));
-        setSplitIndices({});
+        pushCurrentHistory();
+        const next = normalizeData(d);
+        replaceMapData(next);
       },
       setMarkdown(md: string) {
-        if (plugins) {
-          setMapData(parseMarkdownWithFrontMatter(md, plugins).roots);
-        } else {
-          setMapData(parseMarkdownMultiRoot(md));
-        }
-        setSplitIndices({});
+        pushCurrentHistory();
+        const parsed = parseMindMapMarkdownInput(md, plugins);
+        replaceMapData(parsed.roots, parsed);
+      },
+      importMarkdown(md: string) {
+        const parsed = parseMindMapMarkdownInput(md, plugins);
+        handleImportData(parsed.roots, 'markdown', parsed);
+      },
+      importData(d: MindMapData | MindMapData[]) {
+        handleImportData(normalizeData(d), 'json');
+      },
+      selectNode(nodeId: string | null) {
+        setSelectedNodeIdControlled(nodeId);
+        emit({ type: 'nodeSelect', nodeId });
+      },
+      focusNode(nodeId: string) {
+        handleFocusNode(nodeId);
+      },
+      expandNode(nodeId: string) {
+        handleExpandNode(nodeId);
+      },
+      collapseNode(nodeId: string) {
+        handleCollapseNode(nodeId);
+      },
+      undo() {
+        handleUndo();
+      },
+      redo() {
+        handleRedo();
+      },
+      canUndo() {
+        return historyPastRef.current.length > 0;
+      },
+      canRedo() {
+        return historyFutureRef.current.length > 0;
       },
       fitView() {
         handleAutoFit();
@@ -690,6 +1063,9 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
     [
       nodes, edges, mapData, plugins,
       handleAutoFit, handleDirectionChange, activeTheme,
+      pushCurrentHistory, handleImportData, setSelectedNodeIdControlled,
+      emit, handleFocusNode, handleExpandNode, handleCollapseNode, handleUndo, handleRedo,
+      replaceMapData,
     ],
   );
 
@@ -703,19 +1079,26 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
 
   // --- AI generation callbacks ---
   const handleAIMarkdownStream = useCallback((md: string) => {
-    if (plugins) {
-      setMapData(parseMarkdownWithFrontMatter(md, plugins).roots);
-    } else {
-      setMapData(parseMarkdownMultiRoot(md));
-    }
+    const parsed = parseMindMapMarkdownInput(md, plugins);
+    setMapData(parsed.roots);
+    mapDataRef.current = parsed.roots;
+    applyParsedViewOptions(parsed, true);
     setSplitIndices({});
-  }, [plugins]);
+    splitIndicesRef.current = {};
+  }, [applyParsedViewOptions, plugins]);
 
   const handleAIComplete = useCallback(() => {
     setTimeout(() => handleAutoFit(), 100);
   }, [handleAutoFit]);
 
   const handleAIError = useCallback(() => {}, []);
+
+  // Serializing the full tree to markdown is only needed to seed the AI input,
+  // so skip it entirely when AI is disabled and memoize it otherwise.
+  const currentMarkdownForAI = useMemo(
+    () => (ai ? toMarkdownMultiRoot(mapData, plugins) : ""),
+    [ai, mapData, plugins],
+  );
 
   // --- Render ---
   return (
@@ -729,6 +1112,8 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         className={`mindmap-svg ${draggingCanvas ? "dragging-canvas" : ""} ${floatingNodeId ? "dragging-node" : ""}`}
         style={mode === 'text' ? { display: 'none' } : undefined}
         tabIndex={0}
+        role="tree"
+        aria-label="Mind map"
         onMouseDown={handleCanvasMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -737,124 +1122,44 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
       >
-        <g
-          className={`mindmap-canvas${initialReady ? ' mindmap-canvas-ready' : ''}`}
-          transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}
-          opacity={initialReady ? 1 : 0}
-        >
-          {/* Edges */}
-          <g className="mindmap-edges">
-            {/* Arrow marker for cross-links */}
-            {edges.some(e => e.isCrossLink) && (
-              <defs>
-                <marker id="mindmap-arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                  <path d="M0,0 L8,3 L0,6" fill="none" stroke="currentColor" strokeWidth={1.5} />
-                </marker>
-              </defs>
-            )}
-            {edges.map((edge) => {
-              const edgeExpandDelay = expandDelays[edge.toId];
-              const isExpandingEdge = edgeExpandDelay !== undefined;
-              return (
-              <g key={edge.key}>
-                <path
-                  d={edge.path}
-                  stroke={edge.color}
-                  strokeWidth={activeTheme.connection.strokeWidth}
-                  strokeLinecap="round"
-                  strokeDasharray={isExpandingEdge ? undefined : edge.strokeDasharray}
-                  markerEnd={edge.isCrossLink ? 'url(#mindmap-arrowhead)' : undefined}
-                  opacity={edge.isCrossLink ? 0.7 : 1}
-                  fill="none"
-                  data-branch-index={nodeMap[edge.toId]?.branchIndex}
-                  className={[
-                    "mindmap-edge",
-                    edge.isCrossLink ? "mindmap-edge-cross-link" : "",
-                    isExpandingEdge
-                      ? "mindmap-edge-expanding"
-                      : draggingCanvas ||
-                        floatingSubtreeIds.has(edge.fromId) ||
-                        floatingSubtreeIds.has(edge.toId)
-                        ? ""
-                        : "mindmap-edge-animated",
-                  ].filter(Boolean).join(" ")}
-                  style={isExpandingEdge ? { animationDelay: `${edgeExpandDelay}ms` } : undefined}
-                />
-                {/* Edge label */}
-                {edge.label && (() => {
-                  const fromNode = nodeMap[edge.fromId];
-                  const toNode = nodeMap[edge.toId];
-                  if (!fromNode || !toNode) return null;
-                  const mx = (fromNode.x + toNode.x) / 2;
-                  const my = (fromNode.y + toNode.y) / 2;
-                  return (
-                    <text
-                      className="mindmap-edge-label"
-                      x={mx} y={my - 6}
-                      textAnchor="middle"
-                      fontSize={11}
-                      fill={edge.color}
-                      opacity={0.8}
-                      fontFamily={activeTheme.node.fontFamily}
-                    >
-                      {edge.label}
-                    </text>
-                  );
-                })()}
-              </g>
-              );
-            })}
-          </g>
-
-          {/* Nodes */}
-          <g className="mindmap-nodes">
-            {nodes.map((node) => {
-              const isInFloatingSubtree = floatingSubtreeIds.has(node.id);
-              const animClass =
-                isInFloatingSubtree || draggingCanvas
-                  ? ""
-                  : "mindmap-node-animated";
-
-              return (
-                <MindMapNode
-                  key={node.id}
-                  node={node}
-                  isEditing={editingId === node.id}
-                  isPendingEdit={pendingEditId === node.id}
-                  isSelected={selectedNodeId === node.id}
-                  isNew={newNodeIds.has(node.id)}
-                  isGhost={isInFloatingSubtree}
-                  animClass={animClass}
-                  editText={editText}
-                  theme={activeTheme}
-                  direction={direction}
-                  onMouseDown={handleNodeMouseDown}
-                  onClick={handleNodeClick}
-                  onDoubleClick={readonlyProp ? () => {} : handleNodeDoubleClick}
-                  onEditChange={setEditText}
-                  onEditCommit={commitEdit}
-                  onEditCancel={cancelEdit}
-                  onAddChild={handleAddChild}
-                  onRemarkHover={handleRemarkHover}
-                  onFoldToggle={plugins ? (nodeId) => {
-                    const isExpanding = !foldOverrides[nodeId];
-                    if (isExpanding) {
-                      setExpandingFromId(nodeId);
-                      setTimeout(() => setExpandingFromId(null), 800);
-                    }
-                    setFoldOverrides(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
-                  } : undefined}
-                  expandDelay={expandDelays[node.id]}
-                  readonly={readonlyProp}
-                  plugins={plugins}
-                  latexRenderer={{ getKatexSync, onKatexReady, renderLatexToHtml, loadKatexStyle }}
-                />
-              );
-            })}
-          </g>
-
-          {/* Floating copy of dragged subtree */}
-          {floatingNodeId && floatingPos && (() => {
+        <MindMapCanvas
+          nodes={nodes}
+          edges={edges}
+          nodeMap={nodeMap}
+          theme={activeTheme}
+          direction={direction}
+          plugins={plugins}
+          pan={pan}
+          zoom={zoom}
+          initialReady={initialReady}
+          draggingCanvas={draggingCanvas}
+          expandDelays={expandDelays}
+          newNodeIds={newNodeIds}
+          searchMatches={searchState.searchMatches}
+          dimmedNodes={searchState.dimmedNodes}
+          readonly={readonlyProp}
+          latexRenderer={latexRenderer}
+          selectedNodeId={selectedNodeId}
+          editingId={editingId}
+          pendingEditId={pendingEditId}
+          editText={editText}
+          activeMatchId={
+            activeSearchIndexForMatches >= 0
+              ? searchState.matchIds[activeSearchIndexForMatches] ?? null
+              : null
+          }
+          floatingSubtreeIds={floatingSubtreeIds}
+          onNodeMouseDown={handleNodeMouseDown}
+          onNodeClick={handleNodeClick}
+          onNodeDoubleClick={readonlyProp ? undefined : handleNodeDoubleClick}
+          onNodeContextMenu={readonlyProp ? undefined : handleNodeContextMenu}
+          onEditChange={setEditText}
+          onEditCommit={commitEdit}
+          onEditCancel={cancelEdit}
+          onAddChild={handleAddChild}
+          onRemarkHover={handleRemarkHover}
+          onFoldToggle={plugins ? handleFoldToggle : undefined}
+          floatingSlot={floatingNodeId && floatingPos && (() => {
             const rootNode = nodeMap[floatingNodeId];
             if (!rootNode) return null;
             const dx = floatingPos.x - rootNode.x;
@@ -916,19 +1221,14 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
                       onEditCancel={() => {}}
                       onAddChild={() => {}}
                       readonly
-                      latexRenderer={{ getKatexSync, onKatexReady, renderLatexToHtml, loadKatexStyle }}
+                      latexRenderer={latexRenderer}
                     />
                   ))}
               </g>
               </>
             );
           })()}
-
-          {/* Plugin overlay layer (cross-link arrows, etc.) */}
-          {plugins && runRenderOverlay(plugins, nodes, edges, activeTheme).map((el, i) => (
-            <g className="mindmap-plugin-overlay" key={`plugin-overlay-${i}`}>{el}</g>
-          ))}
-        </g>
+        />
       </svg>
 
       <MindMapControls
@@ -936,43 +1236,81 @@ export const MindMap = forwardRef<MindMapRef, MindMapProps>(function MindMap(
         theme={activeTheme}
         messages={t}
         showZoom={toolbarConfig.zoom && mode !== 'text'}
+        showHistory={toolbarConfig.history && mode !== 'text' && !readonlyProp}
+        showSearch={toolbarConfig.search && mode !== 'text'}
+        showTags={toolbarConfig.tags && mode !== 'text'}
         showModeToggle={!!textEditor}
         mode={mode}
         isFullscreen={isFullscreen}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        searchQuery={searchQuery}
+        searchMatchCount={searchState.matchIds.length}
+        activeSearchIndex={activeSearchIndexForMatches}
+        availableTags={searchState.availableTags}
+        activeTags={activeTags}
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
         onAutoFit={handleAutoFit}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onSearchChange={handleSearchChange}
+        onSearchPrevious={() => handleSearchStep(-1)}
+        onSearchNext={() => handleSearchStep(1)}
+        onTagToggle={handleTagToggle}
+        onClearTags={handleClearTags}
         onModeToggle={handleModeToggle}
         onFullscreenToggle={handleFullscreenToggle}
       />
 
-      {ai && (
-        <MindMapAIInput
-          config={ai}
-          theme={activeTheme}
-          messages={t}
-          currentMarkdown={toMarkdownMultiRoot(mapData, plugins)}
-          onMarkdownStream={handleAIMarkdownStream}
-          onComplete={handleAIComplete}
-          onError={handleAIError}
-        />
-      )}
+      {/* Lazily-loaded edit-mode overlays — each chunk fetches on first use. */}
+      <Suspense fallback={null}>
+        {ai && (
+          <MindMapAIInput
+            config={ai}
+            theme={activeTheme}
+            messages={t}
+            currentMarkdown={currentMarkdownForAI}
+            onMarkdownStream={handleAIMarkdownStream}
+            onComplete={handleAIComplete}
+            onError={handleAIError}
+          />
+        )}
 
-      {contextMenu && (
-        <MindMapContextMenu
-          position={contextMenu}
-          theme={activeTheme}
-          messages={t}
-          direction={direction}
-          readonly={readonlyProp}
-          onNewRootNode={handleNewRootNode}
-          onExportSVG={handleExportSVG}
-          onExportPNG={handleExportPNG}
-          onExportMarkdown={handleExportMarkdown}
-          onDirectionChange={handleDirectionChange}
-          onClose={closeContextMenu}
-        />
-      )}
+        {contextMenu && (
+          <MindMapContextMenu
+            position={contextMenu}
+            theme={activeTheme}
+            messages={t}
+            direction={direction}
+            readonly={readonlyProp}
+            nodeId={contextMenu.nodeId ?? null}
+            canPaste={contextMenu.canPaste}
+            onNewRootNode={handleNewRootNode}
+            onImport={handleOpenImport}
+            onExportSVG={handleExportSVG}
+            onExportPNG={handleExportPNG}
+            onExportMarkdown={handleExportMarkdown}
+            onDirectionChange={handleDirectionChange}
+            onAddChildNode={(e) => contextMenu.nodeId && handleAddChild(e, contextMenu.nodeId)}
+            onEditNode={() => contextMenu.nodeId && handleEditNode(contextMenu.nodeId)}
+            onDeleteNode={() => contextMenu.nodeId && handleDeleteNode(contextMenu.nodeId)}
+            onCopyNode={() => contextMenu.nodeId && handleCopyNode(contextMenu.nodeId)}
+            onCutNode={() => contextMenu.nodeId && handleCutNode(contextMenu.nodeId)}
+            onPasteNode={() => contextMenu.nodeId && handlePasteNode(contextMenu.nodeId)}
+            onClose={closeContextMenu}
+          />
+        )}
+
+        {importDialogOpen && (
+          <MindMapImportDialog
+            messages={t}
+            plugins={plugins}
+            onImport={handleImportData}
+            onClose={() => setImportDialogOpen(false)}
+          />
+        )}
+      </Suspense>
 
       {remarkTooltip && (
         <div

@@ -40,7 +40,9 @@ English | [中文](README.zh-CN.md)
 - **Readonly mode** — display-only with pan/zoom/select but no editing; ideal for presentations and embeds
 - **Multiple root nodes** — build separate trees on the same canvas
 - **Drag & drop** — reorder siblings by dragging; drag root's children across the center line to rebalance sides
-- **Keyboard shortcuts** — Enter to create, Delete to remove, Cmd+C/V to copy/paste, Shift+ shortcuts for zoom & layout
+- **Undo / redo** — canvas-level history for visual edits, imports, drag reorder, cut/paste, and programmatic replacements
+- **Search & tag filtering** — find nodes, jump between matches, and dim non-matching tag branches while preserving ancestor context
+- **Keyboard shortcuts** — Arrow keys to navigate, Tab/Shift+Enter to add child/sibling, Enter/F2 to edit, Delete to remove, Cmd/Ctrl+Z to undo, Cmd+C/V to copy/paste, Shift+ shortcuts for zoom & layout
 - **Markdown I/O** — feed a markdown list in, get a mind map out (great for AI streaming)
 - **i18n** — auto-detects browser language; built-in Chinese and English, fully customizable via props
 - **Dark mode** — auto-detects `prefers-color-scheme`, or set `light` / `dark` explicitly
@@ -49,7 +51,7 @@ English | [中文](README.zh-CN.md)
 - **Context menu** — right-click to add root nodes, import data, export, or change layout
 - **Layout modes** — left, right, or balanced (both) layout directions
 - **Mobile optimized** — full touch support with single-finger pan/drag and two-finger pinch-to-zoom centered on content
-- **Toolbar control** — show/hide zoom controls via the `toolbar` prop
+- **Toolbar control** — show/hide zoom, history, search, and tag controls via the `toolbar` prop
 - **Tiny footprint** — zero runtime dependencies beyond React
 
 ## Installation
@@ -411,12 +413,12 @@ Control the toolbar via the `toolbar` prop:
 <MindMap data={data} toolbar={false} />;
 
 {
-  /* Hide zoom controls (text mode and fullscreen buttons remain) */
+  /* Hide zoom controls while keeping history/search/tag controls */
 }
 <MindMap data={data} toolbar={{ zoom: false }} />;
 ```
 
-The toolbar includes zoom controls (bottom-left) and text mode / fullscreen toggle buttons (bottom-right). The `toolbar` prop controls zoom visibility; the text mode and fullscreen buttons are always available.
+The toolbar includes zoom/history controls (bottom-left), search and tag filters (top-left), and text mode / fullscreen toggle buttons (bottom-right). The `toolbar` prop accepts `zoom`, `history`, `search`, and `tags` flags; text mode and fullscreen buttons remain available.
 
 ### Mobile / Touch Support
 
@@ -459,7 +461,9 @@ Machine Learning
 ```
 
 - `[text](url)` — Node text becomes a clickable hyperlink.
-- `![alt](path)` — Embeds an image within a node.
+- `![alt](path)` — Embeds an image within a node using an SVG `<image>` element.
+
+> PNG export follows browser canvas security rules. Cross-origin images may require CORS headers or data URLs to export correctly.
 
 ### Task Status
 
@@ -493,7 +497,7 @@ Machine Learning
   - Classification
   - Regression
 - Unsupervised Learning
-  %% TODO: add more examples
+  %% Additional paradigms stay hidden from the map
   - Clustering
 ```
 
@@ -590,17 +594,26 @@ Render mathematical formulas (requires [KaTeX](https://katex.org/)):
 | `locale`           | `string`                        | _auto_       | UI language (auto-detected from browser, or `'zh-CN'`, `'en-US'`, custom)      |
 | `messages`         | `Partial<MindMapMessages>`      | -            | Override any UI text string                                                    |
 | `readonly`         | `boolean`                       | `false`      | Display-only mode (no editing, no creating)                                    |
-| `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | Show/hide zoom controls                                                        |
+| `toolbar`          | `boolean \| ToolbarConfig`      | `true`       | Show/hide zoom, history, search, and tag controls                              |
 | `ai`               | `MindMapAIConfig`               | -            | AI generation configuration (API endpoint, key, model, attachments)            |
+| `selectedNodeId`   | `string \| null`                | -            | Controlled selected node id                                                    |
+| `searchQuery`      | `string`                        | -            | Controlled search query                                                        |
+| `activeTags`       | `string[]`                      | -            | Controlled active tag filters                                                  |
 | `plugins`          | `MindMapPlugin[]`               | `allPlugins` | Plugins to enable for extended syntax                                          |
 | `textEditor`       | `ComponentType`                 | -            | Pass `MindMapTextEditor` to enable text editing mode. Opt-in for tree-shaking. |
 | `onDataChange`     | `(data: MindMapData[]) => void` | -            | Called when the tree is modified by user interaction                           |
+| `onSelectedNodeChange` | `(nodeId: string \| null) => void` | -        | Called when selection changes                                                  |
+| `onSearchChange`   | `(query: string) => void`       | -            | Called when search text changes                                                |
+| `onActiveTagsChange` | `(tags: string[]) => void`    | -            | Called when active tag filters change                                          |
 
 ### ToolbarConfig
 
 ```ts
 interface ToolbarConfig {
   zoom?: boolean; // show zoom controls (default: true)
+  history?: boolean; // show undo/redo controls (default: true)
+  search?: boolean; // show search controls (default: true)
+  tags?: boolean; // show tag filter chips (default: true)
 }
 ```
 
@@ -615,6 +628,9 @@ interface MindMapAIConfig {
   model: string; // Model name (e.g., "gpt-5")
   systemPrompt?: string; // Custom system prompt (has a built-in default)
   attachments?: AIAttachmentType[]; // Allowed attachment types (default: [])
+  maxAttachmentSize?: number; // Per-file byte limit (default: 5MB)
+  headers?: Record<string, string>; // Extra request headers
+  request?: (payload: MindMapAIRequestPayload) => Promise<Response>; // Custom proxy request
 }
 ```
 
@@ -625,6 +641,9 @@ interface MindMapAIConfig {
 | `model`        | `string`             | Yes      | Model identifier (e.g., `gpt-5`, `deepseek-chat`)                                        |
 | `systemPrompt` | `string`             | No       | Override the built-in mind map generation prompt                                         |
 | `attachments`  | `AIAttachmentType[]` | No       | Enable file uploads: `"text"` (text/\*), `"image"` (image/\*), `"pdf"` (application/pdf) |
+| `maxAttachmentSize` | `number`        | No       | Maximum bytes per uploaded file; defaults to 5 MB                                        |
+| `headers`      | `Record<string, string>` | No  | Extra headers for the default request                                                    |
+| `request`      | `(payload) => Promise<Response>` | No | Custom request adapter, useful for server-side proxy endpoints                           |
 
 ### Ref Methods
 
@@ -633,9 +652,18 @@ interface MindMapAIConfig {
 | `exportToSVG()`     | `string`        | Returns the mind map as an SVG string  |
 | `exportToPNG()`     | `Promise<Blob>` | Renders a high-DPI PNG blob            |
 | `exportToOutline()` | `string`        | Serializes the tree as a markdown list |
+| `getMarkdown()`     | `string`        | Serializes the tree as markdown        |
 | `getData()`         | `MindMapData[]` | Returns the current tree data          |
-| `setData(data)`     | `void`          | Replaces the tree data                 |
-| `setMarkdown(md)`   | `void`          | Parses markdown and replaces the tree  |
+| `setData(data)`     | `void`          | Replaces the tree through editor history and emits `onDataChange` |
+| `setMarkdown(md)`   | `void`          | Parses Markdown, applies valid frontmatter, and emits `onDataChange` |
+| `importMarkdown(md)` | `void`         | Imports Markdown through editor history |
+| `importData(data)`  | `void`          | Imports JSON data through editor history |
+| `selectNode(id)`    | `void`          | Selects a node, or clears selection with `null` |
+| `focusNode(id)`     | `void`          | Selects and pans to a node             |
+| `expandNode(id)`    | `void`          | Expands a folded node                  |
+| `collapseNode(id)`  | `void`          | Marks and collapses a node             |
+| `undo()` / `redo()` | `void`          | Moves through editor history           |
+| `canUndo()` / `canRedo()` | `boolean` | Returns current history availability   |
 | `fitView()`         | `void`          | Resets zoom and pan to fit all nodes   |
 | `setDirection(dir)` | `void`          | Changes the layout direction           |
 
@@ -655,6 +683,8 @@ A lightweight read-only alternative to `MindMap`. Import from `@xiangfa/mindmap/
 | `messages`         | `Partial<MindMapMessages>`      | -        | Override any UI text string                                               |
 | `toolbar`          | `boolean \| ToolbarConfig`      | `true`   | Show/hide zoom controls                                                   |
 | `plugins`          | `MindMapPlugin[]`               | -        | Plugins to enable for extended syntax                                     |
+| `searchQuery`      | `string`                        | -        | Highlights matching nodes                                                 |
+| `activeTags`       | `string[]`                      | -        | Dims nodes outside matching tag branches                                  |
 | `onEvent`          | `(event: MindMapEvent) => void` | -        | Called on zoom, direction change, or node select events                   |
 
 #### MindMapViewerRef Methods
@@ -694,12 +724,17 @@ interface CrossLink {
 
 | Shortcut               | Action                                      |
 | ---------------------- | ------------------------------------------- |
-| `Enter`                | Create a child node under the selected node |
+| `↑` `↓` `←` `→`        | Move selection between nodes                |
+| `Tab`                  | Create a child node under the selected node |
+| `Shift + Enter`        | Create a sibling node after the selected node |
+| `Enter` / `F2`         | Edit the selected node                      |
 | `Delete` / `Backspace` | Delete the selected node                    |
 | `Double-click`         | Edit node text                              |
 | `Cmd/Ctrl + C`         | Copy subtree                                |
 | `Cmd/Ctrl + X`         | Cut subtree                                 |
 | `Cmd/Ctrl + V`         | Paste subtree as child                      |
+| `Cmd/Ctrl + Z`         | Undo visual edit                            |
+| `Cmd/Ctrl + Shift + Z` | Redo visual edit                            |
 | `Escape`               | Close context menu / dialog                 |
 | `Shift + +`            | Zoom in                                     |
 | `Shift + -`            | Zoom out                                    |
@@ -752,6 +787,12 @@ import {
 
   // Lightweight Viewer
   MindMapViewer, // read-only viewer component (also available via @xiangfa/mindmap/viewer)
+
+  // Advanced types
+  type LayoutNode,
+  type Edge,
+  type MindMapAIRequestPayload,
+  type MindMapAIContentPart,
 } from "@xiangfa/mindmap";
 ```
 
@@ -776,8 +817,6 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 You can ask questions or share your thoughts and needs regarding Open MindMap in these communities.
 
 [LinuxDo](https://linux.do)
-
-[V2EX](https://www.v2ex.com)
 
 ## License
 

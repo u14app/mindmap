@@ -1,4 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  Rocket,
+  Code,
+  Bold,
+  Link,
+  MessageSquare,
+  EyeOff,
+  SquareCheckBig,
+  Puzzle,
+  Bot,
+  Palette,
+  Webhook,
+  Keyboard,
+  Wrench,
+  ChevronUp,
+} from "lucide-react";
 import "../Docs.css";
 import GettingStarted from "./docs/sections/GettingStarted";
 import BasicSyntax from "./docs/sections/BasicSyntax";
@@ -19,27 +35,19 @@ import UtilityFunctions from "./docs/sections/UtilityFunctions";
 // ---------------------------------------------------------------------------
 
 const SECTIONS = [
-  { id: "getting-started", title: "Getting Started", icon: "rocket_launch" },
-  { id: "basic-syntax", title: "Basic Syntax", icon: "code" },
-  { id: "text-formatting", title: "Text Formatting", icon: "format_bold" },
-  { id: "links-images", title: "Links & Images", icon: "link" },
-  { id: "remarks", title: "Remarks", icon: "comment" },
-  { id: "comments", title: "Comments", icon: "visibility_off" },
-  { id: "task-status", title: "Task Status", icon: "check_box" },
-  { id: "extended-syntax", title: "Extended Syntax", icon: "extension" },
-  { id: "ai-generation", title: "AI Generation", icon: "smart_toy" },
-  { id: "custom-styling", title: "Custom Styling", icon: "palette" },
-  { id: "api-reference", title: "API Reference", icon: "api" },
-  {
-    id: "keyboard-shortcuts",
-    title: "Keyboard Shortcuts",
-    icon: "keyboard",
-  },
-  {
-    id: "utility-functions",
-    title: "Utility Functions",
-    icon: "build",
-  },
+  { id: "getting-started", title: "Getting Started", icon: Rocket },
+  { id: "basic-syntax", title: "Basic Syntax", icon: Code },
+  { id: "text-formatting", title: "Text Formatting", icon: Bold },
+  { id: "links-images", title: "Links & Images", icon: Link },
+  { id: "remarks", title: "Remarks", icon: MessageSquare },
+  { id: "comments", title: "Comments", icon: EyeOff },
+  { id: "task-status", title: "Task Status", icon: SquareCheckBig },
+  { id: "extended-syntax", title: "Extended Syntax", icon: Puzzle },
+  { id: "ai-generation", title: "AI Generation", icon: Bot },
+  { id: "custom-styling", title: "Custom Styling", icon: Palette },
+  { id: "api-reference", title: "API Reference", icon: Webhook },
+  { id: "keyboard-shortcuts", title: "Keyboard Shortcuts", icon: Keyboard },
+  { id: "utility-functions", title: "Utility Functions", icon: Wrench },
 ];
 
 // ---------------------------------------------------------------------------
@@ -185,9 +193,7 @@ function DocsPage() {
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
                   }`}
                 >
-                  <span className="material-symbols-outlined text-[18px]">
-                    {s.icon}
-                  </span>
+                  <s.icon size={18} />
                   {s.title}
                 </button>
               ))}
@@ -213,9 +219,7 @@ function DocsPage() {
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800"
                 }`}
               >
-                <span className="material-symbols-outlined text-[18px]">
-                  {s.icon}
-                </span>
+                <s.icon size={18} />
                 {s.title}
               </button>
             ))}
@@ -366,9 +370,7 @@ function DocsPage() {
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className="docs-back-to-top fixed bottom-6 right-6 z-40 w-10 h-10 bg-slate-900 dark:bg-slate-700 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary"
         >
-          <span className="material-symbols-outlined text-[20px]">
-            keyboard_arrow_up
-          </span>
+          <ChevronUp size={20} />
         </button>
       )}
     </div>
