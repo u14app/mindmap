@@ -765,6 +765,7 @@ import {
   stripInlineMarkdown, // 移除文本中的 Markdown 格式
 
   // 导出
+  exportMindMapToSVG, // data/markdown → SVG 字符串
   buildExportSVG, // 程序化 SVG 生成
   exportToPNG, // SVG 字符串 → PNG Blob
 
@@ -789,12 +790,26 @@ import {
   MindMapViewer, // 只读查看器组件（也可通过 @xiangfa/mindmap/viewer 导入）
 
   // 高级类型
+  type ExportMindMapToSVGOptions,
   type LayoutNode,
   type Edge,
   type MindMapAIRequestPayload,
   type MindMapAIContentPart,
 } from "@xiangfa/mindmap";
 ```
+
+无需挂载 React 组件即可导出：
+
+```ts
+import { exportMindMapToSVG, allPlugins } from "@xiangfa/mindmap";
+
+const svg = exportMindMapToSVG({
+  markdown,
+  plugins: allPlugins,
+});
+```
+
+默认情况下，`exportMindMapToSVG` 会导出完整树，与编辑模式一致。传入 `readonly: true` 可导出只读渲染中实际可见的折叠树。
 
 ## 开发
 

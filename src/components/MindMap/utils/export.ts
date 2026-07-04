@@ -1,9 +1,12 @@
-import type { LayoutNode, Edge } from '../types'
+import type { LayoutDirection, LayoutNode, Edge, MindMapData, ThemeMode } from '../types'
 import type { ThemeColors } from './theme'
 import type { MindMapPlugin } from '../plugins/types'
-import { THEME, generateExportStyles } from './theme'
+import { THEME, generateExportStyles, getTheme } from './theme'
 import { buildSvgNodeTextString } from './inline-markdown'
 import { runExportNodeDecoration, runExportOverlay } from '../plugins/runner'
+import { layoutMultiRoot } from './layout'
+import { parseMindMapMarkdownInput } from './input'
+import { normalizeData } from './tree-ops'
 
 interface ExportOptions {
   padding?: number
@@ -11,6 +14,28 @@ interface ExportOptions {
   background?: string
   /** When true, avoid foreignObject elements (for PNG canvas export) */
   pngSafe?: boolean
+}
+
+export interface ExportMindMapToSVGOptions {
+  data?: MindMapData | MindMapData[]
+  markdown?: string
+  defaultDirection?: LayoutDirection
+  theme?: ThemeMode
+  plugins?: MindMapPlugin[]
+  readonly?: boolean
+  foldOverrides?: Record<string, boolean>
+  padding?: number
+  background?: string
+}
+
+function resolveExportTheme(mode: ThemeMode = 'auto'): ThemeColors {
+  if (mode === 'dark') return getTheme('dark')
+  if (mode === 'light') return getTheme('light')
+  const prefersDark =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  return getTheme(prefersDark ? 'dark' : 'light')
 }
 
 /**
@@ -132,6 +157,47 @@ export function buildExportSVG(
 
 // Backward-compatible alias
 export const buildExportSVGForPNG = buildExportSVG
+
+export function exportMindMapToSVG({
+  data,
+  markdown,
+  defaultDirection = 'both',
+  theme: themeMode = 'auto',
+  plugins: pluginsProp,
+  readonly = false,
+  foldOverrides,
+  padding,
+  background,
+}: ExportMindMapToSVGOptions): string {
+  const plugins = pluginsProp && pluginsProp.length > 0 ? pluginsProp : undefined
+  const parsed = markdown !== undefined
+    ? parseMindMapMarkdownInput(markdown, plugins)
+    : null
+  const roots = parsed
+    ? parsed.roots
+    : data
+      ? normalizeData(data)
+      : [{ id: 'md-0', text: 'Root' }]
+  const direction = parsed?.direction ?? defaultDirection
+  const activeTheme = resolveExportTheme(parsed?.theme ?? themeMode)
+  const { nodes, edges } = layoutMultiRoot(
+    roots,
+    direction,
+    {},
+    {},
+    plugins,
+    readonly,
+    foldOverrides ?? {},
+  )
+
+  return buildExportSVG(
+    nodes,
+    edges,
+    { padding, background },
+    activeTheme,
+    plugins,
+  )
+}
 
 export function exportToPNG(
   svgString: string,

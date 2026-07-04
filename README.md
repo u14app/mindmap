@@ -765,6 +765,7 @@ import {
   stripInlineMarkdown, // remove markdown formatting from text
 
   // Export
+  exportMindMapToSVG, // data/markdown → SVG string
   buildExportSVG, // programmatic SVG generation
   exportToPNG, // SVG string → PNG Blob
 
@@ -789,12 +790,26 @@ import {
   MindMapViewer, // read-only viewer component (also available via @xiangfa/mindmap/viewer)
 
   // Advanced types
+  type ExportMindMapToSVGOptions,
   type LayoutNode,
   type Edge,
   type MindMapAIRequestPayload,
   type MindMapAIContentPart,
 } from "@xiangfa/mindmap";
 ```
+
+Export without mounting a React component:
+
+```ts
+import { exportMindMapToSVG, allPlugins } from "@xiangfa/mindmap";
+
+const svg = exportMindMapToSVG({
+  markdown,
+  plugins: allPlugins,
+});
+```
+
+By default, `exportMindMapToSVG` exports the full tree, matching edit mode. Pass `readonly: true` to export the visible folded tree used by read-only rendering.
 
 ## Development
 

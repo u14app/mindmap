@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { MindMap, MindMapViewer, parseMarkdownMultiRoot } from '.'
+import { MindMap, MindMapViewer, exportMindMapToSVG, parseMarkdownMultiRoot } from '.'
 import type {
   Edge,
+  ExportMindMapToSVGOptions,
   LayoutNode,
   MindMapAIContentPart,
   MindMapAIRequestPayload,
@@ -37,9 +38,13 @@ describe('public API exports', () => {
       type: 'text',
       text: 'Generate a mind map',
     }
+    const exportOptions: ExportMindMapToSVGOptions = {
+      data: { id: 'root', text: 'Root' },
+    }
 
     expect(MindMap).toBeDefined()
     expect(MindMapViewer).toBeDefined()
+    expect(exportMindMapToSVG(exportOptions)).toContain('Root')
     expect(parseMarkdownMultiRoot('Root')[0].text).toBe('Root')
     expect(node.side).toBe('root')
     expect(edge.toId).toBe('child')

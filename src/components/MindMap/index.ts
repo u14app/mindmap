@@ -23,7 +23,8 @@ export type {
 } from './types'
 export type { MindMapMessages } from './utils/i18n'
 export { resolveMessages, detectLocale } from './utils/i18n'
-export { buildExportSVG, buildExportSVGForPNG, exportToPNG } from './utils/export'
+export type { ExportMindMapToSVGOptions } from './utils/export'
+export { buildExportSVG, buildExportSVGForPNG, exportMindMapToSVG, exportToPNG } from './utils/export'
 export { parseMarkdownList, toMarkdownList, parseMarkdownMultiRoot, toMarkdownMultiRoot, parseMarkdownWithFrontMatter } from './utils/markdown'
 export { parseInlineMarkdown, stripInlineMarkdown } from './utils/inline-markdown'
 

@@ -25,6 +25,7 @@ export default function UtilityFunctions() {
   stripInlineMarkdown,          // remove Markdown formatting from text
 
   // Export
+  exportMindMapToSVG,          // data/markdown → SVG string
   buildExportSVG,               // programmatic SVG generation
   exportToPNG,                  // SVG string → PNG Blob
 
@@ -46,11 +47,24 @@ export default function UtilityFunctions() {
   MindMapViewer,                  // read-only viewer (also via @xiangfa/mindmap/viewer)
 
   // Advanced types
+  type ExportMindMapToSVGOptions,
   type LayoutNode,
   type Edge,
   type MindMapAIRequestPayload,
   type MindMapAIContentPart,
 } from "@xiangfa/mindmap";`}</CodeBlock>
+
+          <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+            Use <code>exportMindMapToSVG</code> to export without mounting a React component.
+            It exports the full tree by default; pass <code>readonly: true</code> to export the visible folded read-only tree.
+          </p>
+
+          <CodeBlock lang="typescript">{`import { exportMindMapToSVG, allPlugins } from "@xiangfa/mindmap";
+
+const svg = exportMindMapToSVG({
+  markdown,
+  plugins: allPlugins,
+});`}</CodeBlock>
     </>
   );
 }
