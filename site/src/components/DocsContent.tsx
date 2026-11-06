@@ -370,6 +370,7 @@ import '@xiangfa/mindmap/styles/features/ai.css'
 const generator = createOpenAICompatibleGenerator({
   apiUrl: '/api/chat/completions', // server-side proxy
   model: 'gpt-5',
+  completionPolicy: 'strict',
 })
 
 const features = [aiFeature({ generator })]
@@ -379,7 +380,7 @@ export function Brainstorm() {
 }`}</CodeBlock>
       <div className="docs-callout">Keep long-lived provider credentials on a server. The browser-facing <code>apiUrl</code> should normally be your own same-origin proxy.</div>
       <SubHeading>Custom Generator</SubHeading>
-      <p>A generator receives the prompt, current Markdown, frozen Document, an <code>AbortSignal</code>, and optional prepared attachments. It returns a complete Markdown string or an async iterable of delta strings.</p>
+      <p>A generator receives the prompt, current Markdown, frozen Document, an <code>AbortSignal</code>, and optional prepared attachments. It returns a complete Markdown string or an async iterable of delta strings. Custom generators must throw when their provider returns incomplete output; their protocol is not validated by the built-in adapter.</p>
       <CodeBlock lang="tsx">{`import { aiFeature, type MindMapAIGenerator } from '@xiangfa/mindmap/features/ai'
 
 const generate: MindMapAIGenerator = async function* ({ prompt, markdown, signal }) {
@@ -437,6 +438,8 @@ type MindMapAIGeneratorResult =
   attachmentReadConcurrency?: number
   headers?: Record<string, string>
   request?: (payload: MindMapAIRequestPayload) => Promise<Response>
+  completionPolicy?: 'strict' | 'legacy'
+  onCompletion?: (completion: MindMapAICompletion) => void
 }`}</CodeBlock>
       <div className="docs-table-wrap"><table className="docs-table"><thead><tr><th>Field</th><th>Required</th><th>Purpose</th></tr></thead><tbody>
         <tr><td><code>apiUrl</code></td><td>Yes</td><td>Chat-completions endpoint or host proxy</td></tr>
@@ -445,7 +448,22 @@ type MindMapAIGeneratorResult =
         <tr><td><code>systemPrompt</code></td><td>No</td><td>Override the Markdown-only generation instruction</td></tr>
         <tr><td><code>headers</code></td><td>No</td><td>Additional request headers</td></tr>
         <tr><td><code>request</code></td><td>No</td><td>Host adapter for proxy or provider-specific transport</td></tr>
+        <tr><td><code>completionPolicy</code></td><td>No</td><td>Default legacy accepts a missing completion reason as unverified. Recommended strict requires stop. Both reject explicit failure.</td></tr>
+        <tr><td><code>onCompletion</code></td><td>No</td><td>Completion metadata: status, finishReason and responseType. This diagnostic is not a document commit notification.</td></tr>
       </tbody></table></div>
+      <p>For JSON and SSE, only <code>finish_reason: "stop"</code> is a verified normal completion. HTTP 200, nonempty text, EOF, or <code>[DONE]</code> alone does not verify completeness. The adapter rejects <code>length</code>, <code>content_filter</code>, and unsupported reasons in both policies. Strict also rejects missing or null reasons; legacy preserves compatibility and reports <code>unknown</code> through the optional diagnostic. Its default remains legacy, with no scheduled deprecation date. Check your proxy forwards terminal metadata before enabling strict.</p>
+      <CodeBlock lang="tsx">{`import { aiFeature, MindMapAIError } from '@xiangfa/mindmap/features/ai'
+
+const features = [aiFeature({
+  generator,
+  onError(error) {
+    if (error instanceof MindMapAIError) {
+      // code: incomplete | content_filter | invalid_response | provider_error
+      // Map the code to safe UI text. Keep cause and raw reasons out of public UI/logs.
+    }
+  },
+})]`}</CodeBlock>
+      <p>Failed generation, stop, or external editing ends the preview and keeps the prompt and attachments for manual retry. A current successful commit clears them and creates one undo step. The adapter never retries or continues automatically, and completion metadata never contains generated text, prompts, attachments or credentials.</p>
       <SubHeading>File Attachments</SubHeading>
       <p>Enable attachments on <code>aiFeature</code> or its provider config. The Feature validates the allow-list and size limits before invoking the generator.</p>
       <CodeBlock lang="tsx">{`const features = [aiFeature({

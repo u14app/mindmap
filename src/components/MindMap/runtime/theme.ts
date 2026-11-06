@@ -5,13 +5,12 @@ import type { MindMapThemeMode, MindMapThemeTokens } from '../core/types'
 export const LIGHT_RUNTIME_THEME: MindMapThemeTokens = { ...DEFAULT_THEME }
 export const DARK_RUNTIME_THEME: MindMapThemeTokens = {
   ...DEFAULT_THEME,
-  background: '#0b1019',
-  text: '#dce3ef',
-  mutedText: '#7f8ba0',
-  rootFill: '#786cf7',
-  rootText: '#ffffff',
-  selection: '#55d9ff',
-  branches: ['#8e82ff', '#55d9ff', '#72e4b8', '#ff8ba8', '#ffc36a', '#6ca9ff', '#c48dff', '#8ad66f'],
+  background: '#1a1a2e',
+  text: '#E0E0E0',
+  mutedText: '#ccc',
+  rootFill: '#4A6FA5',
+  rootText: '#FFFFFF',
+  selection: '#5B9BD5',
 }
 
 export function initialRuntimeTheme(mode: MindMapThemeMode | undefined, input: { document?: { theme?: MindMapThemeMode }; markdown?: string; defaultMarkdown?: string; controller?: { getSnapshot(): { document: { theme?: MindMapThemeMode } } } }, override?: Partial<MindMapThemeTokens>): MindMapThemeTokens {

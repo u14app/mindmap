@@ -1,5 +1,33 @@
 import type { MindMapAIGenerator, MindMapAIGeneratorInput } from './ai-generation'
 
+export type MindMapAICompletionPolicy = 'strict' | 'legacy'
+export type MindMapAICompletionStatus = 'normal' | 'incomplete' | 'blocked' | 'unknown'
+export interface MindMapAICompletion {
+  readonly status: MindMapAICompletionStatus
+  readonly finishReason: string | null
+  readonly responseType: 'sse' | 'json'
+}
+export type MindMapAIErrorCode = 'incomplete' | 'content_filter' | 'invalid_response' | 'provider_error'
+
+const AI_ERROR_MESSAGES: Record<MindMapAIErrorCode, string> = {
+  incomplete: 'AI generation ended before completion.',
+  content_filter: 'AI generation was stopped by the provider.',
+  invalid_response: 'AI provider returned an invalid or unverified response.',
+  provider_error: 'AI provider request failed.',
+}
+
+export class MindMapAIError extends Error {
+  readonly code: MindMapAIErrorCode
+  readonly finishReason: string | null
+
+  constructor(code: MindMapAIErrorCode, options: { finishReason?: string | null; cause?: unknown } = {}) {
+    super(AI_ERROR_MESSAGES[code], { cause: options.cause })
+    this.name = 'MindMapAIError'
+    this.code = code
+    this.finishReason = options.finishReason ?? null
+  }
+}
+
 export type AIAttachmentType = 'text' | 'image' | 'pdf'
 export class MindMapAttachmentError extends Error {
   readonly code: 'size' | 'type' | 'read' | 'count' | 'total-size'
@@ -51,6 +79,10 @@ export interface MindMapAIConfig extends MindMapAIAttachmentLimits {
   attachments?: readonly AIAttachmentType[]
   headers?: Record<string, string>
   request?: (payload: MindMapAIRequestPayload) => Promise<Response>
+  /** Legacy (default) permits missing completion reasons; strict requires stop. Explicit failures always reject. */
+  completionPolicy?: MindMapAICompletionPolicy
+  /** Provider completion metadata, without generated content. Unknown in legacy mode is not verified completion. */
+  onCompletion?: (completion: MindMapAICompletion) => void
 }
 
 export function buildMindMapAIRequest(config: MindMapAIConfig, input: MindMapAIGeneratorInput): MindMapAIRequestPayload {
@@ -69,50 +101,141 @@ export function buildMindMapAIRequest(config: MindMapAIConfig, input: MindMapAIG
   return { apiUrl: config.apiUrl, apiKey: config.apiKey, model: config.model, messages, headers, body: JSON.stringify({ model: config.model, messages, stream: true }), signal: input.signal, attachments: input.attachments ?? [] }
 }
 
-function readEvent(event: string): { done: boolean; text: string } {
-  const data = event.split(/\r?\n/).filter((line) => line.startsWith('data:')).map((line) => line.slice(5).trimStart()).join('\n')
-  if (!data) return { done: false, text: '' }
-  if (data.trim() === '[DONE]') return { done: true, text: '' }
-  let value: { choices?: Array<{ delta?: { content?: unknown } }>; error?: { message?: string } }
-  try { value = JSON.parse(data) } catch { throw new Error('Invalid AI stream event.') }
-  if (value.error) throw new Error(value.error.message ?? 'AI provider returned an error.')
-  const text = value.choices?.[0]?.delta?.content
-  return { done: false, text: typeof text === 'string' ? text : '' }
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-export async function* readMindMapAIStream(response: Response, signal: AbortSignal): AsyncGenerator<string> {
-  if (!response.ok) throw new Error(`AI request failed (${response.status}).`)
-  if (!response.body) throw new Error('AI response has no stream body.')
-  const isStream = response.headers.get('content-type')?.includes('text/event-stream')
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
+function parseResponse(data: string): Record<string, unknown> {
+  let value: unknown
+  try { value = JSON.parse(data) } catch (cause) { throw new MindMapAIError('invalid_response', { cause }) }
+  if (!isRecord(value)) throw new MindMapAIError('invalid_response')
+  if (value.error !== undefined && value.error !== null) throw new MindMapAIError('provider_error', { cause: value.error })
+  return value
+}
+
+function readChoice(value: Record<string, unknown>): Record<string, unknown> | undefined {
+  if (!Array.isArray(value.choices)) throw new MindMapAIError('invalid_response')
+  const choices: Record<string, unknown>[] = []
+  for (const choice of value.choices) {
+    if (!isRecord(choice) || (choice.index !== undefined && (!Number.isSafeInteger(choice.index) || Number(choice.index) < 0))) {
+      throw new MindMapAIError('invalid_response')
+    }
+    choices.push(choice)
+  }
+  if (choices.filter((choice) => choice.index === 0).length > 1) throw new MindMapAIError('invalid_response')
+  // Some compatible services omit index; never mix a different indexed choice into choice zero.
+  return choices.find((choice) => choice.index === 0) ?? (choices.every((choice) => choice.index === undefined) ? choices[0] : undefined)
+}
+
+function completionStatus(reason: string | null): MindMapAICompletionStatus {
+  if (reason === 'stop') return 'normal'
+  if (reason === 'length') return 'incomplete'
+  if (reason === 'content_filter') return 'blocked'
+  return 'unknown'
+}
+
+export async function* readMindMapAIStream(
+  response: Response,
+  signal: AbortSignal,
+  options: Pick<MindMapAIConfig, 'completionPolicy' | 'onCompletion'> = {},
+): AsyncGenerator<string> {
+  if (signal.aborted || !response.ok) {
+    await response.body?.cancel().catch(() => undefined)
+    if (signal.aborted) return
+    throw new MindMapAIError('provider_error', { cause: { status: response.status } })
+  }
+  if (!response.body) throw new MindMapAIError('invalid_response')
+  const isStream = response.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase() === 'text/event-stream'
+  const responseType = isStream ? 'sse' : 'json'
+  let reader: ReadableStreamDefaultReader<Uint8Array>
+  try { reader = response.body.getReader() } catch (cause) { throw new MindMapAIError('invalid_response', { cause }) }
+  const decoder = new TextDecoder('utf-8', { fatal: true })
   let buffer = ''
+  let trailingCR = false
+  let finishReason: string | null = null
+  let hasContent = false
   const cancel = () => { void reader.cancel().catch(() => undefined) }
+  const reportCompletion = () => options.onCompletion?.({ status: completionStatus(finishReason), finishReason, responseType })
+  function readContent(value: Record<string, unknown>): string {
+    const choice = readChoice(value)
+    if (!choice) return '' // Empty usage chunks and other choices do not complete choice zero.
+    const reason = choice.finish_reason
+    if (reason !== undefined && reason !== null) {
+      if (typeof reason !== 'string') throw new MindMapAIError('invalid_response', { cause: reason })
+      if (reason !== 'stop') {
+        finishReason = reason
+        reportCompletion()
+        throw new MindMapAIError(reason === 'length' ? 'incomplete' : reason === 'content_filter' ? 'content_filter' : 'invalid_response', { finishReason })
+      }
+    }
+    const message = isStream ? choice.delta : choice.message
+    if (message !== undefined && !isRecord(message)) throw new MindMapAIError('invalid_response')
+    if (message === undefined && (!isStream || reason == null)) throw new MindMapAIError('invalid_response')
+    const content = message?.content
+    if (content !== undefined && content !== null && typeof content !== 'string') throw new MindMapAIError('invalid_response')
+    const text = typeof content === 'string' ? content : ''
+    if (finishReason !== null && text) throw new MindMapAIError('invalid_response', { finishReason })
+    if (reason === 'stop') finishReason = reason
+    if (text.trim()) hasContent = true
+    return text
+  }
+  function finish(): void {
+    if (!hasContent) throw new MindMapAIError('invalid_response', { finishReason })
+    reportCompletion()
+    if (finishReason === null && options.completionPolicy === 'strict') throw new MindMapAIError('invalid_response')
+  }
+  function readEvent(event: string): { done: boolean; text: string } {
+    if (event.length > 1_000_000) throw new MindMapAIError('invalid_response')
+    const lines = event.split('\n')
+    const data = lines.filter((line) => line === 'data' || line.startsWith('data:')).map((line) => line.slice(5).replace(/^ /, '')).join('\n')
+    if (!data) return { done: false, text: '' }
+    if (data.trim() === '[DONE]') return { done: true, text: '' }
+    const value = parseResponse(data)
+    if (lines.some((line) => /^event: ?error$/.test(line))) throw new MindMapAIError('provider_error', { cause: value })
+    return { done: false, text: readContent(value) }
+  }
   signal.addEventListener('abort', cancel, { once: true })
   try {
     while (!signal.aborted) {
-      const { value, done } = await reader.read()
-      buffer += done ? decoder.decode() : decoder.decode(value, { stream: true })
-      if (buffer.length > 1_000_000) throw new Error('AI response event exceeds 1000000 characters.')
+      let frame: ReadableStreamReadResult<Uint8Array>
+      try { frame = await reader.read() } catch (cause) {
+        if (signal.aborted) return
+        throw new MindMapAIError('provider_error', { cause })
+      }
+      if (signal.aborted) return
+      const { value, done } = frame
+      let decoded: string
+      try { decoded = done ? decoder.decode() : decoder.decode(value, { stream: true }) } catch (cause) {
+        throw new MindMapAIError('invalid_response', { cause })
+      }
       if (!isStream) {
+        buffer += decoded
+        if (buffer.length > 1_000_000) throw new MindMapAIError('invalid_response')
         if (!done) continue
-        const result = JSON.parse(buffer) as { choices?: Array<{ message?: { content?: unknown } }> }
-        const content = result.choices?.[0]?.message?.content
-        if (typeof content !== 'string' || !content.trim()) throw new Error('AI response has no mind map content.')
+        const content = readContent(parseResponse(buffer))
+        finish()
         if (!signal.aborted) yield content
         return
       }
-      let boundary = /\r?\n\r?\n/.exec(buffer)
-      while (boundary) {
-        const event = readEvent(buffer.slice(0, boundary.index))
-        buffer = buffer.slice(boundary.index + boundary[0].length)
-        if (event.done) return
+      // Normalize SSE line endings only after a split CRLF pair has been rejoined.
+      if (trailingCR) decoded = '\r' + decoded
+      trailingCR = !done && decoded.endsWith('\r')
+      if (trailingCR) decoded = decoded.slice(0, -1)
+      buffer += decoded.replace(/\r\n?/g, '\n')
+      let boundary = buffer.indexOf('\n\n')
+      while (boundary !== -1) {
+        const event = readEvent(buffer.slice(0, boundary))
+        buffer = buffer.slice(boundary + 2)
+        if (event.done) { finish(); return }
         if (event.text && !signal.aborted) yield event.text
-        boundary = /\r?\n\r?\n/.exec(buffer)
+        if (signal.aborted) return
+        boundary = buffer.indexOf('\n\n')
       }
+      if (buffer.length > 1_000_000) throw new MindMapAIError('invalid_response')
       if (done) {
         const event = readEvent(buffer)
         if (event.text && !signal.aborted) yield event.text
+        if (!signal.aborted) finish()
         return
       }
     }
@@ -125,10 +248,16 @@ export async function* readMindMapAIStream(response: Response, signal: AbortSign
 
 export function createOpenAICompatibleGenerator(config: MindMapAIConfig): MindMapAIGenerator {
   return async function* (input) {
+    if (input.signal.aborted) return
     const payload = buildMindMapAIRequest(config, input)
-    const response = config.request ? await config.request(payload) : await fetch(payload.apiUrl, { method: 'POST', headers: payload.headers, body: payload.body, signal: input.signal })
-    if (input.signal.aborted) { await response.body?.cancel(); return }
-    yield* readMindMapAIStream(response, input.signal)
+    let response: Response
+    try {
+      response = config.request ? await config.request(payload) : await fetch(payload.apiUrl, { method: 'POST', headers: payload.headers, body: payload.body, signal: input.signal })
+    } catch (cause) {
+      if (input.signal.aborted) return
+      throw new MindMapAIError('provider_error', { cause })
+    }
+    yield* readMindMapAIStream(response, input.signal, config)
   }
 }
 

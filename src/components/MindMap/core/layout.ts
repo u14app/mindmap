@@ -17,24 +17,26 @@ import type {
 } from './types'
 
 export const DEFAULT_THEME: MindMapThemeTokens = {
-  background: '#ffffff',
-  text: '#253044',
-  mutedText: '#748096',
-  rootFill: '#7367f9',
-  rootText: '#ffffff',
-  selection: '#55d9ff',
-  branches: ['#7367f9', '#1fbca4', '#f59e5b', '#e76d8c', '#4f9cf9', '#9a72ee', '#68b66b', '#e0aa3e'],
-  fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-  rootFontSize: 17,
-  levelOneFontSize: 15,
-  nodeFontSize: 13,
-  horizontalGap: 72,
-  verticalGap: 24,
+  background: '#fafafa',
+  text: '#333333',
+  mutedText: '#555',
+  rootFill: '#2C3E50',
+  rootText: '#FFFFFF',
+  selection: '#4A90D9',
+  branches: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#F0B27A'],
+  fontFamily: "system-ui, 'Segoe UI', Roboto, sans-serif",
+  rootFontSize: 20,
+  levelOneFontSize: 16,
+  nodeFontSize: 15,
+  horizontalGap: 80,
+  verticalGap: 16,
   rootPaddingX: 24,
-  rootPaddingY: 14,
-  nodePaddingX: 13,
-  nodePaddingY: 9,
+  rootPaddingY: 12,
+  nodePaddingX: 8,
+  nodePaddingY: 6,
 }
+
+const TAG_COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#6366F1']
 
 interface InternalNode {
   source: MindMapNode
@@ -77,6 +79,7 @@ export interface MindMapNodeContentMetrics {
   readonly multiline: readonly { readonly text: string; readonly y: number; readonly top: number; readonly height: number; readonly fontSize: number }[]
   readonly tagY: number | null
   readonly tagFontSize: number
+  readonly tags: readonly { readonly text: string; readonly x: number; readonly width: number; readonly color: string }[]
   readonly images: readonly { readonly url: string; readonly alt: string; readonly x: number; readonly y: number; readonly width: number; readonly height: number }[]
 }
 
@@ -95,7 +98,7 @@ export function measureMindMapNodeContent(node: Pick<MindMapNode, 'text' | 'attr
   const fontSize = root ? theme.rootFontSize : depth === 1 ? theme.levelOneFontSize : theme.nodeFontSize
   const paddingX = root ? theme.rootPaddingX : theme.nodePaddingX
   const paddingY = root ? theme.rootPaddingY : theme.nodePaddingY
-  const task = node.attributes?.task ? fontSize + 5 : 0
+  const task = node.attributes?.task ? fontSize * 0.9 + 4 : 0
   const remark = node.attributes?.remark ? fontSize * 0.8 : 0
   const tags = node.attributes?.tags?.values ?? []
   const lines = node.attributes?.multiline?.lines ?? []
@@ -126,14 +129,16 @@ export function measureMindMapNodeContent(node: Pick<MindMapNode, 'text' | 'attr
     return url ? [{ url, alt: token.text, x: -80, y: 0, width: 160, height: 96 }] : []
   })
   const labelHeight = lineHeight(tokens, fontSize)
-  const lineFontSize = fontSize * 0.84
-  const lineHeights = lineTokens.map((items) => Math.max(fontSize * 1.25, lineHeight(items, lineFontSize)))
-  const tagHeight = tags.length ? fontSize + 9 : 0
-  const tagFontSize = fontSize * 0.75
-  const baseWidth = textWidth(visibleText(tokens) || ' ', fontSize) + task + remark + paddingX * 2
+  const lineFontSize = fontSize * 0.85
+  const lineHeights = lineTokens.map((items) => Math.max(fontSize * 1.4, lineHeight(items, lineFontSize)))
+  const tagFontSize = fontSize * 0.65
+  const tagHeight = tags.length ? tagFontSize + 10 : 0
+  const tagWidths = tags.map((tag) => Math.max(tag.length * tagFontSize * 0.65, textWidth(tag, tagFontSize)) + 10)
+  const tagRowWidth = tagWidths.reduce((sum, value) => sum + value, 0) + Math.max(0, tags.length - 1) * 4
+  const baseWidth = textWidth(visibleText(tokens) || (node.text ? ' ' : 'Untitled'), fontSize) + task + remark + paddingX * 2
   const lineWidth = lineTokens.reduce((max, items) => Math.max(max, textWidth(visibleText(items), lineFontSize) + paddingX * 2), 0)
-  const tagWidth = textWidth(tags.map((tag) => '#' + tag).join('  '), tagFontSize) + paddingX * 2
-  const width = Math.max(root ? 116 : 72, baseWidth, lineWidth, tagWidth, images.length ? 160 + paddingX * 2 : 0)
+  const tagWidth = tagRowWidth + paddingX * 2
+  const width = Math.max(baseWidth, lineWidth, tagWidth, images.length ? 160 + paddingX * 2 : 0)
   const height = labelHeight + paddingY * 2 + lineHeights.reduce((sum, value) => sum + value, 0) + tagHeight + images.length * 104
   const labelTop = -height / 2 + paddingY
   let cursor = labelTop + labelHeight
@@ -144,6 +149,12 @@ export function measureMindMapNodeContent(node: Pick<MindMapNode, 'text' | 'attr
     return line
   })
   const tagY = tagHeight ? cursor + tagHeight / 2 : null
+  let tagX = -tagRowWidth / 2
+  const tagMetrics = tags.map((text, index) => {
+    const tag = Object.freeze({ text, x: tagX, width: tagWidths[index], color: TAG_COLORS[index % TAG_COLORS.length] })
+    tagX += tag.width + 4
+    return tag
+  })
   cursor += tagHeight
   for (const image of images) {
     image.y = cursor + 8
@@ -152,9 +163,9 @@ export function measureMindMapNodeContent(node: Pick<MindMapNode, 'text' | 'attr
   }
   const dimensions: MindMapNodeContentMetrics = Object.freeze({
     width, height, fontSize, labelY: labelTop + labelHeight / 2, labelTop, labelHeight,
-    multiline: Object.freeze(multiline), tagY, tagFontSize, images: Object.freeze(images),
+    multiline: Object.freeze(multiline), tagY, tagFontSize, tags: Object.freeze(tagMetrics), images: Object.freeze(images),
   })
-  const weight = key.length + multiline.reduce((sum, line) => sum + line.text.length, 0) + images.reduce((sum, image) => sum + image.url.length + image.alt.length, 0)
+  const weight = key.length + multiline.reduce((sum, line) => sum + line.text.length, 0) + tagMetrics.reduce((sum, tag) => sum + tag.text.length, 0) + images.reduce((sum, image) => sum + image.url.length + image.alt.length, 0)
   if (weight <= DIMENSION_CACHE_ENTRY_WEIGHT) {
     while (dimensionCache.size >= DIMENSION_CACHE_LIMIT || dimensionCacheWeight + weight > DIMENSION_CACHE_TOTAL_WEIGHT) {
       const oldestKey = dimensionCache.keys().next().value!
@@ -247,7 +258,7 @@ function edgePath(parent: InternalNode | MindMapLayoutNode, child: InternalNode 
   const direction = child.side === 'left' ? -1 : 1
   const x1 = parent.x + direction * parent.width / 2
   const x2 = child.x - direction * child.width / 2
-  const control = x1 + (x2 - x1) * 0.48
+  const control = x1 + (x2 - x1) * 0.5
   return `M ${x1.toFixed(2)} ${parent.y.toFixed(2)} C ${control.toFixed(2)} ${parent.y.toFixed(2)}, ${control.toFixed(2)} ${child.y.toFixed(2)}, ${x2.toFixed(2)} ${child.y.toFixed(2)}`
 }
 

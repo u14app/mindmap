@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { applyMindMapPatches, applyMindMapPatchesWithInverse, createMarkdownStream, createMindMapParser, createMindMapController, diffMindMapDocuments, layoutMindMap, measureMindMapNodeContent, parseMindMap, renderMindMapToSvg, sanitizeMindMapUrl, serializeMindMap, validateMindMapDocument } from '../index'
+import { applyMindMapPatches, applyMindMapPatchesWithInverse, createMarkdownStream, createMindMapParser, createMindMapController, DEFAULT_THEME, diffMindMapDocuments, layoutMindMap, measureMindMapNodeContent, parseMindMap, renderMindMapToSvg, sanitizeMindMapUrl, serializeMindMap, validateMindMapDocument } from '../index'
 import type { MindMapDocument, MindMapPatch } from '../index'
 
 const initial: MindMapDocument = { roots: [{ id: 'root', text: 'Root', children: [
@@ -15,7 +15,7 @@ describe('document runtime invariants', () => {
     controller.subscribe(listener)
     controller.setLayoutOptions({})
     controller.setLayoutOptions({ theme: {}, extensions: [], foldOverrides: {}, splitByRoot: {} })
-    controller.setLayoutOptions({ theme: { rootFontSize: 17 } })
+    controller.setLayoutOptions({ theme: { rootFontSize: DEFAULT_THEME.rootFontSize } })
     expect(controller.getSnapshot()).toBe(before)
     expect(listener).not.toHaveBeenCalled()
     controller.setLayoutOptions({ theme: { rootFontSize: 24 } })
@@ -459,7 +459,7 @@ describe('layout and URL contracts', () => {
     expect(svg).not.toContain('href="javascript:')
     expect(svg).toContain('<image ')
     expect(svg).toContain('Extra <tspan font-family="monospace">code')
-    expect(svg).toContain('#tag')
+    expect(svg).toContain('>tag</text>')
     expect(svg).toContain('&lt;note&gt;')
     expect(svg).toContain('Edge label')
     expect(svg).toContain('<math ')

@@ -85,6 +85,9 @@ export interface MindMapMessages {
   aiPlaceholder: string
   aiGenerating: string
   aiError: string
+  aiIncomplete?: string
+  aiContentFiltered?: string
+  aiInvalidResponse?: string
   aiFileTooLarge: string
   aiTooManyAttachments: string
   aiAttachmentsTooLarge: string
@@ -153,6 +156,9 @@ const zhCN: MindMapMessages = {
   aiPlaceholder: '让 AI 生成思维导图...',
   aiGenerating: '生成中...',
   aiError: '生成失败',
+  aiIncomplete: '生成因输出长度限制未完成，原导图已保留。',
+  aiContentFiltered: '生成被提供方中止，原导图已保留。',
+  aiInvalidResponse: '无法确认生成结果完整，原导图已保留。',
   aiFileTooLarge: '文件过大',
   aiTooManyAttachments: '附件数量超过限制',
   aiAttachmentsTooLarge: '附件总大小超过限制',
@@ -220,6 +226,9 @@ const enUS: MindMapMessages = {
   aiPlaceholder: 'Ask AI to generate a mind map...',
   aiGenerating: 'Generating...',
   aiError: 'Generation failed',
+  aiIncomplete: 'Generation reached the output limit before completion. Your original mind map was kept.',
+  aiContentFiltered: 'The provider stopped generation. Your original mind map was kept.',
+  aiInvalidResponse: 'The response could not be verified. Your original mind map was kept.',
   aiFileTooLarge: 'File is too large',
   aiTooManyAttachments: 'Too many attachments',
   aiAttachmentsTooLarge: 'Attachments exceed the total size limit',

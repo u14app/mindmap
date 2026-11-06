@@ -2,9 +2,9 @@ import { useControllerSession } from '../runtime/useControllerSession'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { runMindMapGeneration, type MindMapAIGenerator } from './ai-generation'
 import type { MindMapController } from '../core/types'
-import { createOpenAICompatibleGenerator, readMindMapAttachments, MindMapAttachmentError, type AIAttachmentType, type MindMapAIAttachment, type MindMapAIConfig, type MindMapAIAttachmentLimits } from './ai-provider'
+import { createOpenAICompatibleGenerator, readMindMapAttachments, MindMapAttachmentError, MindMapAIError, type AIAttachmentType, type MindMapAIAttachment, type MindMapAIConfig, type MindMapAIAttachmentLimits } from './ai-provider'
 export { createOpenAICompatibleGenerator } from './ai-provider'
-export type { AIAttachmentType, MindMapAIAttachment, MindMapAIAttachmentLimits, MindMapAIConfig, MindMapAIContentPart, MindMapAIRequestPayload } from './ai-provider'
+export type { AIAttachmentType, MindMapAIAttachment, MindMapAIAttachmentLimits, MindMapAIConfig, MindMapAIContentPart, MindMapAIRequestPayload, MindMapAICompletion, MindMapAICompletionPolicy, MindMapAICompletionStatus, MindMapAIErrorCode } from './ai-provider'
 import type { MindMapEditorFeature, MindMapEditorFeatureComponentProps } from '../runtime/editor-types'
 export type { MindMapAIGenerator, MindMapAIGeneratorInput, MindMapAIGeneratorResult } from './ai-generation'
 
@@ -74,7 +74,14 @@ function AIFeatureSession({ context, options: featureOptions }: MindMapEditorFea
       }
     } catch (cause) {
       if (!abort.signal.aborted && abortRef.current === abort) {
-        setError(context.messages.aiError)
+        const messages = context.messages
+        const message = cause instanceof MindMapAIError
+          ? cause.code === 'content_filter' ? messages.aiContentFiltered
+            : cause.code === 'incomplete' && cause.finishReason === 'length' ? messages.aiIncomplete
+              : cause.code === 'invalid_response' || cause.code === 'incomplete' ? messages.aiInvalidResponse
+                : messages.aiError
+          : messages.aiError
+        setError(message ?? messages.aiError)
         options.onError?.(cause)
       }
     } finally {

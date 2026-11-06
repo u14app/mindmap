@@ -25,7 +25,7 @@ export interface MindMapSceneProps {
 function taskGlyph(node: MindMapLayoutNode): string | null {
   const status = (node.attributes?.task as { status?: string } | undefined)?.status
   if (status === 'done') return '✓'
-  if (status === 'doing') return '-'
+  if (status === 'doing') return '■'
   if (status === 'todo') return ''
   return null
 }
@@ -34,44 +34,40 @@ function MindMapNodeContent({ node, theme, renderMath, remoteImagePolicy }: { re
   const root = node.depth === 0
   const metrics = measureMindMapNodeContent(node, node.depth, theme, remoteImagePolicy)
   const fontSize = metrics.fontSize
+  const fontWeight = root ? 600 : node.depth === 1 ? 500 : 400
+  const paddingX = root ? theme.rootPaddingX : theme.nodePaddingX
   const task = taskGlyph(node)
-  const tags = (node.attributes?.tags as { values?: string[] } | undefined)?.values ?? []
-  const tagWidths = tags.map((tag) => Math.max(34, tag.length * fontSize * 0.45 + 15))
-  const tagTotal = tagWidths.reduce((sum, width) => sum + width, 0) + Math.max(0, tags.length - 1) * 5
-  const tagPositions: number[] = []
-  let tagOffset = -tagTotal / 2
-  for (const width of tagWidths) {
-    tagPositions.push(tagOffset)
-    tagOffset += width + 5
-  }
+  const taskWidth = task !== null ? fontSize * 0.9 + 4 : 0
+  const taskSize = fontSize * 0.85
+  const tagHeight = metrics.tagFontSize + 6
   const firstY = metrics.labelY
   const formatted = tokenizeMindMapInline(node.text).some((token) => token.type !== 'text')
   return (
     <g className="mm-node-content" pointerEvents="none">
       {task !== null && (
-        <g transform={`translate(${-node.width / 2 + 13}, ${firstY - fontSize * 0.42})`} className={`mm-task mm-task--${(node.attributes?.task as { status?: string }).status}`}>
-          <rect width={fontSize * 0.82} height={fontSize * 0.82} rx={4} />
-          {task && <text x={fontSize * 0.41} y={fontSize * 0.43} textAnchor="middle" dominantBaseline="central">{task}</text>}
+        <g transform={`translate(${-node.width / 2 + paddingX}, ${firstY - taskSize / 2})`} className={`mm-task mm-task--${(node.attributes?.task as { status?: string }).status}`}>
+          <rect width={taskSize} height={taskSize} rx={taskSize * 0.2} />
+          {task && <text x={taskSize / 2} y={taskSize / 2} textAnchor="middle" dominantBaseline="central">{task}</text>}
         </g>
       )}
       {!formatted && <text
         className="mm-node-label"
-        x={task !== null ? 4 : 0}
+        x={taskWidth / 2}
         y={firstY}
         textAnchor="middle"
         dominantBaseline="central"
         fontFamily={theme.fontFamily}
         fontSize={fontSize}
-        fontWeight={root ? 680 : node.depth === 1 ? 620 : 470}
+        fontWeight={fontWeight}
         fill={root ? theme.rootText : theme.text}
       >
         {node.text || 'Untitled'}
       </text>}
-      {formatted && <foreignObject x={-node.width / 2 + 12} y={metrics.labelTop} width={Math.max(1, node.width - 24)} height={metrics.labelHeight} pointerEvents="auto">
-        <div className="mm-inline-content" style={{ color: root ? theme.rootText : theme.text, fontFamily: theme.fontFamily, fontSize, fontWeight: root ? 680 : 470 }}><InlineContent text={node.text} math={Boolean(node.attributes?.latex)} images={false} renderMath={renderMath} remoteImagePolicy={remoteImagePolicy} /></div>
+      {formatted && <foreignObject x={-node.width / 2 + paddingX + taskWidth} y={metrics.labelTop} width={Math.max(1, node.width - paddingX * 2 - taskWidth)} height={metrics.labelHeight} pointerEvents="auto">
+        <div className="mm-inline-content" style={{ color: root ? theme.rootText : theme.text, fontFamily: theme.fontFamily, fontSize, fontWeight }}><InlineContent text={node.text} math={Boolean(node.attributes?.latex)} images={false} renderMath={renderMath} remoteImagePolicy={remoteImagePolicy} /></div>
       </foreignObject>}
       {metrics.multiline.map((line, index) => tokenizeMindMapInline(line.text).some((token) => token.type !== 'text') ? (
-        <foreignObject key={`${node.id}-line-${index}`} x={-node.width / 2 + 12} y={line.top} width={Math.max(1, node.width - 24)} height={line.height} pointerEvents="auto"><div className="mm-inline-content" style={{ color: root ? theme.rootText : theme.mutedText, fontFamily: theme.fontFamily, fontSize: line.fontSize }}><InlineContent text={line.text} math={Boolean(node.attributes?.latex)} images={false} renderMath={renderMath} remoteImagePolicy={remoteImagePolicy} /></div></foreignObject>
+        <foreignObject className="mm-node-detail" key={`${node.id}-line-${index}`} x={-node.width / 2 + paddingX} y={line.top} width={Math.max(1, node.width - paddingX * 2)} height={line.height} pointerEvents="auto"><div className="mm-inline-content" style={{ color: root ? theme.rootText : theme.text, fontFamily: theme.fontFamily, fontSize: line.fontSize, fontWeight: 400 }}><InlineContent text={line.text} math={Boolean(node.attributes?.latex)} images={false} renderMath={renderMath} remoteImagePolicy={remoteImagePolicy} /></div></foreignObject>
       ) : (
         <text
           key={`${node.id}-line-${index}`}
@@ -82,22 +78,19 @@ function MindMapNodeContent({ node, theme, renderMath, remoteImagePolicy }: { re
           dominantBaseline="central"
           fontFamily={theme.fontFamily}
           fontSize={line.fontSize}
-          fill={root ? theme.rootText : theme.mutedText}
+          fontWeight={400}
+          fill={root ? theme.rootText : theme.text}
         >{line.text}</text>
       ))}
       {metrics.images.map((image, index) => <image key={`${node.id}-image-${index}`} href={image.url} crossOrigin="anonymous" {...{ referrerPolicy: "no-referrer" }} x={image.x} y={image.y} width={image.width} height={image.height} preserveAspectRatio="xMidYMid meet" aria-label={image.alt}><title>{image.alt}</title></image>)}
-      {tags.length > 0 && (
-        <g className="mm-node-tags" transform={`translate(0 ${(metrics.tagY ?? 0) - (fontSize + 5) / 2})`}>
-          {tags.map((tag, index) => {
-            const width = tagWidths[index]
-            const x = tagPositions[index]
-            return (
-              <g key={index} transform={`translate(${x} 0)`}>
-                <rect width={width} height={fontSize + 5} rx={(fontSize + 5) / 2} fill={node.color} opacity=".13" />
-                <text x={width / 2} y={(fontSize + 5) / 2} textAnchor="middle" dominantBaseline="central" fontFamily={theme.fontFamily} fontSize={fontSize * 0.62} fill={node.color}>#{tag}</text>
-              </g>
-            )
-          })}
+      {metrics.tags.length > 0 && (
+        <g className="mm-node-tags" transform={`translate(0 ${(metrics.tagY ?? 0) - tagHeight / 2})`}>
+          {metrics.tags.map((tag, index) => (
+            <g key={index} transform={`translate(${tag.x} 0)`}>
+              <rect width={tag.width} height={tagHeight} rx="3" fill={tag.color} opacity=".15" />
+              <text x={tag.width / 2} y={tagHeight / 2} textAnchor="middle" dominantBaseline="central" fontFamily={theme.fontFamily} fontSize={metrics.tagFontSize} fill={tag.color}>{tag.text}</text>
+            </g>
+          ))}
         </g>
       )}
     </g>
@@ -128,14 +121,14 @@ export function MindMapScene({
             d={edge.path}
             fill="none"
             stroke={edge.color}
-            strokeWidth="2.25"
+            strokeWidth="2.5"
             strokeLinecap="round"
-            strokeDasharray={edge.dotted ? '6 7' : undefined}
+            strokeDasharray={edge.dotted ? '6 4' : undefined}
           />
         ))}
         {layout.edges.filter((edge) => edge.label).map((edge) => {
           const from = layout.nodeById.get(edge.fromId), to = layout.nodeById.get(edge.toId)
-          return from && to ? <text key={`${edge.id}-label`} x={(from.x + to.x) / 2} y={(from.y + to.y) / 2 - 8} textAnchor="middle" fill={theme.text} fontSize={11}>{edge.label}</text> : null
+          return from && to ? <text key={`${edge.id}-label`} x={(from.x + to.x) / 2} y={(from.y + to.y) / 2 - 6} textAnchor="middle" fill={edge.color} fontSize={11} fontFamily={theme.fontFamily} opacity=".8">{edge.label}</text> : null
         })}
       </g>
       <g className="mm-nodes">
@@ -174,11 +167,11 @@ export function MindMapScene({
                 <rect className="mm-node-shape" x={-node.width / 2} y={-node.height / 2} width={node.width} height={node.height} rx={node.height / 2} fill={node.color} />
               ) : (
                 <>
-                  <rect className="mm-node-shape" x={-node.width / 2} y={-node.height / 2} width={node.width} height={node.height} rx="9" fill={theme.background} fillOpacity=".92" stroke={selected ? theme.selection : node.color} strokeOpacity={selected ? 1 : .18} strokeWidth={selected ? 2 : 1} />
-                  <line className="mm-node-accent" x1={-node.width / 2 + 9} y1={node.height / 2 - 3} x2={node.width / 2 - 9} y2={node.height / 2 - 3} stroke={node.color} strokeWidth="2.4" strokeLinecap="round" />
+                  <rect className="mm-node-shape" x={-node.width / 2} y={-node.height / 2} width={node.width} height={node.height} rx="4" fill={selected ? theme.selection : 'transparent'} fillOpacity={selected ? .08 : 0} stroke={selected ? theme.selection : 'none'} strokeOpacity={selected ? 1 : 0} strokeWidth={selected ? 1.5 : 0} />
+                  <line className="mm-node-accent" x1={-node.width / 2 + theme.nodePaddingX} y1={node.height / 2 - theme.nodePaddingY + 4} x2={node.width / 2 - theme.nodePaddingX} y2={node.height / 2 - theme.nodePaddingY + 4} stroke={node.color} strokeWidth="2.5" strokeLinecap="round" />
                 </>
               )}
-              {selected && root && <rect className="mm-node-selection" x={-node.width / 2 - 4} y={-node.height / 2 - 4} width={node.width + 8} height={node.height + 8} rx={node.height / 2 + 4} fill="none" stroke={theme.selection} strokeWidth="2" />}
+              {selected && root && <rect className="mm-node-selection" x={-node.width / 2} y={-node.height / 2} width={node.width} height={node.height} rx={node.height / 2} fill="none" stroke={theme.selection} strokeWidth="2.5" />}
               <MindMapNodeContent node={node} theme={theme} renderMath={renderMath} remoteImagePolicy={remoteImagePolicy} />
               {node.attributes?.remark && <title>{(node.attributes.remark as { text: string }).text}</title>}
               {node.childCount > 0 && onFoldToggle && (

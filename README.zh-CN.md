@@ -143,6 +143,39 @@ const features = [ai]
 
 一次成功的 AI 生成、拖拽或分组编辑会形成一条已提交的历史记录。取消和失败会恢复操作前的 Document。流式帧仍是实时预览；如果持久化必须只发生在事务提交后，请使用 `phase === 'commit'` 的 Controller 事件。
 
+使用内置 OpenAI 兼容适配器时，请显式配置完成状态校验：
+
+```tsx
+import { aiFeature, MindMapAIError } from '@xiangfa/mindmap/features/ai'
+
+const features = [aiFeature({
+  config: {
+    apiUrl: '/api/chat/completions', // 自己的服务端代理
+    model: 'your-model',
+    completionPolicy: 'strict',
+    onCompletion({ status, finishReason, responseType }) {
+      // 可选的元数据诊断，不要记录生成内容或凭据。
+    },
+  },
+  onError(error) {
+    if (error instanceof MindMapAIError) {
+      // 将 error.code 映射为安全提示；error.cause 仅供受控处理。
+    }
+  },
+})]
+```
+
+| 完成策略 | EOF / `[DONE]` 时缺少 `finish_reason` 或为 null | 明确的结束原因 |
+| --- | --- | --- |
+| `strict`（新接入推荐） | 以 `invalid_response` 拒绝 | 仅 `stop` 成功 |
+| `legacy`（默认，兼容既有接入） | 沿用非空输出可完成的行为，通过 `onCompletion` 报告 `unknown` | 仅 `stop` 成功 |
+
+JSON 和 SSE 均拒绝 `length`（`incomplete`）、`content_filter`（`content_filter`）和 `tool_calls` 等不支持的结束原因（`invalid_response`）。HTTP、提供方及传输失败使用 `provider_error`；格式错误、空响应或无法验证的响应使用 `invalid_response`。`MindMapAIError` 提供 `code`、`finishReason` 和可选的 `cause`。它的消息和内置多语言界面均不直接显示提供方原始详情。
+
+`onCompletion` 报告提供方元数据，不代表文档已成功提交：状态为 `normal`、`incomplete`、`blocked` 或 `unknown`，响应类型为 `responseType: 'sse' | 'json'`。legacy 下的 `unknown` **不代表已确认完整**。回调不包含生成文本、提示词、附件或凭据；不支持的原始 `finishReason` 仍是不可信输入，记录日志时应只保留允许列表内的值。持久化请依据 Controller 提交事件。只有当前会话成功提交后才清空提示词和附件；失败、停止或外部编辑接管均保留输入，供用户手动重试。适配器不会自动重试或续写。
+
+既有接入可在升级前显式配置 `completionPolicy: 'legacy'`，记录不含敏感载荷的完成状态元数据，确认代理会转发所选 choice 的终止原因后再切换为 `strict`。本次保持 `legacy` 默认值，尚未安排弃用日期，无需迁移导图数据。自定义生成器的返回签名不变，宿主必须在自己的提供方输出不完整时抛错；内置适配器无法验证自定义生成器的协议。
+
 ## 语法和扩展
 
 解析器接受类 Markdown 的树形输入，多个根节点之间使用空行分隔。现有项目语法包括：

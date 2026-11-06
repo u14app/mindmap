@@ -180,8 +180,8 @@ for (const [subpath, condition, target] of exportTargets) {
 check("package export allowlist", !failures.some((value) => value.startsWith("unsupported package export") || value.startsWith("retired package export")));
 check("package exports resolve", !failures.some((value) => value.startsWith("package export")));
 
-if (packageJson.version !== "0.9.0") failures.push(`package version is ${packageJson.version}; expected 0.9.0`);
-check("package version", packageJson.version === "0.9.0");
+if (packageJson.version !== "1.0.0") failures.push(`package version is ${packageJson.version}; expected 1.0.0`);
+check("package version", packageJson.version === "1.0.0");
 
 const legacyReferences = [];
 for (const file of filesUnder(resolve(root, "src"))) {

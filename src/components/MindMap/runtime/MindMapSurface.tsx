@@ -14,7 +14,7 @@ import {
 } from 'react'
 import type { MindMapDocument, MindMapLayout, MindMapLayoutNode, MindMapThemeTokens } from '../core/types'
 import { MindMapScene } from './MindMapScene'
-import { themeVariables } from './theme'
+import { DARK_RUNTIME_THEME, themeVariables } from './theme'
 import type { MindMapMessages } from './messages'
 import { cullMindMapLayout } from './culling'
 
@@ -289,7 +289,7 @@ export const MindMapSurface = forwardRef<MindMapSurfaceRef, MindMapSurfaceProps>
       ref={containerRef}
       className={`mm-surface ${className}`.trim()}
       style={themeVariables(theme)}
-      data-mm-theme={theme.background === '#0b1019' ? 'dark' : 'light'}
+      data-mm-theme={theme.background === DARK_RUNTIME_THEME.background ? 'dark' : 'light'}
       onKeyDown={onKeyDown}
       onContextMenu={onContextMenu}
       onFocusCapture={(event) => setFocusedNodeId((event.target as Element).closest('[data-mm-node]')?.getAttribute('data-mm-node') ?? null)}

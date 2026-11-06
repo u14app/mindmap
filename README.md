@@ -143,6 +143,39 @@ const features = [ai]
 
 One successful AI generation, drag gesture, or grouped edit creates one committed history entry. Cancellation and failure restore the pre-operation Document. Stream frames remain live previews; use the controller event with `phase === 'commit'` when persistence must happen only after a transaction commits.
 
+For the built-in OpenAI-compatible adapter, configure completion validation explicitly:
+
+```tsx
+import { aiFeature, MindMapAIError } from '@xiangfa/mindmap/features/ai'
+
+const features = [aiFeature({
+  config: {
+    apiUrl: '/api/chat/completions', // Your server proxy
+    model: 'your-model',
+    completionPolicy: 'strict',
+    onCompletion({ status, finishReason, responseType }) {
+      // Optional metadata diagnostic. Do not log generated content or credentials.
+    },
+  },
+  onError(error) {
+    if (error instanceof MindMapAIError) {
+      // Map error.code to your own safe message; error.cause is for controlled handling.
+    }
+  },
+})]
+```
+
+| Completion policy | Missing or null `finish_reason` at EOF / `[DONE]` | Explicit completion reason |
+| --- | --- | --- |
+| `strict` (recommended for new integrations) | Rejects with `invalid_response` | Only `stop` succeeds |
+| `legacy` (default, for existing integrations) | Retains the previous nonempty-output behavior; reports `unknown` to `onCompletion` | Only `stop` succeeds |
+
+Both JSON and SSE reject `length` (`incomplete`), `content_filter` (`content_filter`), and unsupported reasons such as `tool_calls` (`invalid_response`). HTTP, provider and transport failures use `provider_error`; malformed, empty or unverifiable responses use `invalid_response`. `MindMapAIError` exposes `code`, `finishReason`, and optional `cause`. Its message and the built-in localized UI never display raw provider details.
+
+`onCompletion` reports provider metadata, not a successful document commit: statuses are `normal`, `incomplete`, `blocked`, or `unknown`, with `responseType: 'sse' | 'json'`. An `unknown` legacy result is **not verified complete**. The callback contains no generated text, prompt, attachment, or credential; treat an unsupported raw `finishReason` as untrusted and log an allow-listed value only. Observe controller commit events to confirm persistence. Prompts and attachments are cleared only after a successful owned commit; failure, stop, or external editing keeps them for a manual retry. The adapter does not retry or continue automatically.
+
+Existing integrations may set `completionPolicy: 'legacy'` explicitly before upgrading, record completion metadata without sensitive payloads, and switch to `strict` after confirming that their proxy forwards the selected choice's terminal reason. The default remains `legacy` in this change; no deprecation date is scheduled. No document migration is needed. Custom generators keep their existing return signature and must throw when their own provider output is incomplete; the built-in adapter cannot validate a custom generator's protocol.
+
 ## Syntax and Extensions
 
 The parser accepts Markdown-like tree input with multiple roots separated by a blank line. Existing project syntax includes:

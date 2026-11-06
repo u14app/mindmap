@@ -1,14 +1,10 @@
 @import "./static.css";
 .mm-surface { position: relative; width: 100%; height: 100%; min-height: 280px; overflow: hidden; overscroll-behavior: contain; isolation: isolate; background: var(--mm-background); outline: none; touch-action: none; }
-.mm-viewport { display: block; width: 100%; height: 100%; cursor: grab; outline: none; background:
-  radial-gradient(circle at center, color-mix(in srgb, var(--mm-muted) 13%, transparent) .7px, transparent .8px);
-  background-size: 28px 28px;
-}
+.mm-viewport { display: block; width: 100%; height: 100%; cursor: grab; outline: none; background: var(--mm-background); }
 .mm-viewport:active { cursor: grabbing; }
 .mm-viewport:focus-visible { box-shadow: inset 0 0 0 2px var(--mm-selection); }
 .mm-viewport-error,.mm-operation-error { position:absolute; z-index:16; left:16px; bottom:96px; max-width:calc(100% - 32px); padding:10px 14px; border:1px solid var(--mm-selection); border-radius:8px; background:var(--mm-background); color:var(--mm-text); font:13px/1.5 var(--mm-font); }
 .mm-node[data-mm-node] { cursor: pointer; }
-.mm-node:hover .mm-node-shape { stroke-opacity: .5; }
 .mm-semantic-tree { position: absolute!important; width: 1px!important; height: 1px!important; padding: 0!important; margin: -1px!important; overflow: hidden!important; clip: rect(0,0,0,0)!important; white-space: nowrap!important; border: 0!important; }
 .mm-viewport-controls { position: absolute; z-index: 8; left: 18px; bottom: 18px; height: 38px; display: flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid color-mix(in srgb, var(--mm-muted) 22%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--mm-background) 86%, transparent); backdrop-filter: blur(18px); box-shadow: 0 12px 35px rgba(0,0,0,.13); }
 .mm-viewport-controls button { width: 31px; height: 31px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--mm-muted); cursor: pointer; font-size: 17px; }

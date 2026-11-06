@@ -392,7 +392,7 @@ test.describe('site controls and responsive layout', () => {
     await page.goto('/live/')
     const surface = page.locator('.mm-surface')
     await expect(surface).toBeVisible()
-    expect(await surface.evaluate((element) => getComputedStyle(element).getPropertyValue('--mm-background').trim().toLowerCase())).toBe('#171a23')
+    expect(await surface.evaluate((element) => getComputedStyle(element).getPropertyValue('--mm-background').trim().toLowerCase())).toBe('#1a1a2e')
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toContain('dark')
   })
 

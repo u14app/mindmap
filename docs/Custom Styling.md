@@ -89,17 +89,17 @@ The light `DEFAULT_THEME` is:
 
 | Token | Default | Token | Default |
 | --- | --- | --- | --- |
-| `background` | `#ffffff` | `text` | `#253044` |
-| `mutedText` | `#748096` | `rootFill` | `#7367f9` |
-| `rootText` | `#ffffff` | `selection` | `#55d9ff` |
-| `fontFamily` | `Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif` | `rootFontSize` | `17` |
-| `levelOneFontSize` | `15` | `nodeFontSize` | `13` |
-| `horizontalGap` | `72` | `verticalGap` | `24` |
-| `rootPaddingX` | `24` | `rootPaddingY` | `14` |
-| `nodePaddingX` | `13` | `nodePaddingY` | `9` |
-| `branches` | `#7367f9`, `#1fbca4`, `#f59e5b`, `#e76d8c`, `#4f9cf9`, `#9a72ee`, `#68b66b`, `#e0aa3e` | — | — |
+| `background` | `#fafafa` | `text` | `#333333` |
+| `mutedText` | `#555` | `rootFill` | `#2C3E50` |
+| `rootText` | `#FFFFFF` | `selection` | `#4A90D9` |
+| `fontFamily` | `system-ui, 'Segoe UI', Roboto, sans-serif` | `rootFontSize` | `20` |
+| `levelOneFontSize` | `16` | `nodeFontSize` | `15` |
+| `horizontalGap` | `80` | `verticalGap` | `16` |
+| `rootPaddingX` | `24` | `rootPaddingY` | `12` |
+| `nodePaddingX` | `8` | `nodePaddingY` | `6` |
+| `branches` | `#FF6B6B`, `#4ECDC4`, `#45B7D1`, `#96CEB4`, `#FFEAA7`, `#DDA0DD`, `#98D8C8`, `#F7DC6F`, `#BB8FCE`, `#F0B27A` | — | — |
 
-The dark runtime theme changes the background, text, muted text, root fill, selection color, and branch palette while retaining the same token shape. Treat those values as implementation defaults; use `themeTokens` when a product needs a fixed palette.
+The default appearance follows v0.7.1: a capsule root, transparent child nodes with colored underlines, and solid curved connections. The dark runtime theme changes the background, text, muted text, root fill, and selection color while retaining the branch palette and token shape. Treat those values as implementation defaults; use `themeTokens` when a product needs a fixed palette.
 
 ## CSS custom properties
 
